@@ -1,0 +1,1222 @@
+/* =====================================================
+   POSTOCHECK
+   HOMEPAGE
+   RESPONSIVO
+   LOGO PRÓXIMA DO CABEÇALHO
+===================================================== */
+
+
+/* =====================================================
+   RESET
+===================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+html {
+    width: 100%;
+    min-height: 100%;
+
+    scroll-behavior: smooth;
+}
+
+
+body {
+    width: 100%;
+    min-width: 0;
+
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow-x: hidden;
+
+    background: #ffffff;
+    color: #000000;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+}
+
+
+body.menu-open {
+    overflow: hidden;
+}
+
+
+/* =====================================================
+   CABEÇALHO
+===================================================== */
+
+.header {
+    width: 100%;
+
+    min-height: 62px;
+
+    background: #000000;
+
+    border-bottom:
+        3px solid
+        #f5c400;
+
+    position: relative;
+
+    z-index: 1000;
+
+    flex-shrink: 0;
+}
+
+
+.header-content {
+    width: 100%;
+    max-width: 1500px;
+
+    min-height: 59px;
+
+    margin: 0 auto;
+
+    padding:
+        6px
+        clamp(8px, 3vw, 30px);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+}
+
+
+/* =====================================================
+   BOTÃO LOGAR
+===================================================== */
+
+.header-login-button {
+    min-width:
+        clamp(
+            68px,
+            10vw,
+            110px
+        );
+
+    padding:
+        clamp(7px, 1.5vw, 11px)
+        clamp(10px, 2vw, 18px);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border:
+        2px solid
+        #f5c400;
+
+    border-radius: 7px;
+
+    background: #f5c400;
+
+    color: #000000;
+
+    font-size:
+        clamp(
+            11px,
+            1.5vw,
+            15px
+        );
+
+    font-weight: 900;
+
+    text-decoration: none;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+
+.header-login-button:hover {
+    background: #ffffff;
+
+    color: #000000;
+}
+
+
+/* =====================================================
+   BOTÃO MENU
+===================================================== */
+
+.menu-button {
+    width:
+        clamp(
+            40px,
+            5vw,
+            48px
+        );
+
+    height:
+        clamp(
+            40px,
+            5vw,
+            48px
+        );
+
+    min-width: 40px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border:
+        2px solid
+        #f5c400;
+
+    border-radius: 7px;
+
+    background: #000000;
+
+    color: #f5c400;
+
+    font-size:
+        clamp(
+            21px,
+            3vw,
+            27px
+        );
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+
+.menu-button:hover {
+    background: #f5c400;
+
+    color: #000000;
+}
+
+
+/* =====================================================
+   OVERLAY DO MENU
+===================================================== */
+
+.menu-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1100;
+
+    background:
+        rgba(
+            0,
+            0,
+            0,
+            0.6
+        );
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    transition:
+        opacity 0.25s ease,
+        visibility 0.25s ease;
+}
+
+
+.menu-overlay.active {
+    opacity: 1;
+
+    visibility: visible;
+}
+
+
+/* =====================================================
+   MENU LATERAL
+===================================================== */
+
+.side-menu {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width:
+        min(
+            360px,
+            90vw
+        );
+
+    height: 100vh;
+    height: 100dvh;
+
+    z-index: 1200;
+
+    display: flex;
+
+    flex-direction: column;
+
+    background: #ffffff;
+
+    border-right:
+        4px solid
+        #f5c400;
+
+    transform:
+        translateX(-105%);
+
+    transition:
+        transform 0.28s ease;
+
+    box-shadow:
+        8px 0 25px
+        rgba(
+            0,
+            0,
+            0,
+            0.2
+        );
+
+    overflow: hidden;
+}
+
+
+.side-menu.active {
+    transform:
+        translateX(0);
+}
+
+
+/* =====================================================
+   CABEÇALHO DO MENU LATERAL
+===================================================== */
+
+.side-menu-header {
+    min-height: 76px;
+
+    padding:
+        10px
+        clamp(12px, 3vw, 20px);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 10px;
+
+    background: #000000;
+
+    color: #ffffff;
+
+    border-bottom:
+        3px solid
+        #f5c400;
+
+    flex-shrink: 0;
+}
+
+
+.side-menu-title {
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    font-size:
+        clamp(
+            16px,
+            2vw,
+            20px
+        );
+
+    font-weight: 900;
+}
+
+
+.side-menu-logo {
+    display: block;
+
+    width:
+        clamp(
+            85px,
+            12vw,
+            115px
+        );
+
+    max-width: 45vw;
+
+    max-height: 42px;
+
+    height: auto;
+
+    object-fit: contain;
+}
+
+
+.close-menu-button {
+    width: 42px;
+
+    height: 42px;
+
+    min-width: 42px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border:
+        2px solid
+        #ffffff;
+
+    border-radius: 7px;
+
+    background: transparent;
+
+    color: #ffffff;
+
+    font-size: 30px;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+
+.close-menu-button:hover {
+    background: #f5c400;
+
+    color: #000000;
+
+    border-color:
+        #f5c400;
+}
+
+
+/* =====================================================
+   NAVEGAÇÃO DO MENU
+===================================================== */
+
+.side-menu-nav {
+    flex: 1;
+
+    min-height: 0;
+
+    padding: 12px;
+
+    overflow-y: auto;
+
+    overflow-x: hidden;
+}
+
+
+.side-menu-item {
+    width: 100%;
+
+    min-height: 52px;
+
+    margin-bottom: 7px;
+
+    padding:
+        8px
+        11px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    border:
+        2px solid
+        transparent;
+
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #000000;
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+    text-decoration: none;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+
+.side-menu-item:hover {
+    background: #f5c400;
+
+    border-color:
+        #000000;
+}
+
+
+.side-menu-icon {
+    width: 33px;
+
+    height: 33px;
+
+    min-width: 33px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border:
+        2px solid
+        #000000;
+
+    border-radius: 6px;
+
+    background: #f5c400;
+
+    font-size: 17px;
+
+    font-weight: 900;
+}
+
+
+/* =====================================================
+   RODAPÉ DO MENU
+===================================================== */
+
+.side-menu-footer {
+    padding:
+        12px
+        15px
+        max(
+            14px,
+            env(
+                safe-area-inset-bottom
+            )
+        );
+
+    border-top:
+        2px solid
+        #000000;
+
+    background: #ffffff;
+
+    flex-shrink: 0;
+}
+
+
+.side-menu-user {
+    width: 100%;
+
+    margin-bottom: 10px;
+}
+
+
+.side-menu-user-label {
+    display: block;
+
+    margin-bottom: 4px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    color: #666666;
+}
+
+
+.side-menu-user-email {
+    display: block;
+
+    width: 100%;
+
+    overflow: hidden;
+
+    color: #000000;
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+
+.logout-button {
+    width: 100%;
+
+    min-height: 44px;
+
+    border:
+        2px solid
+        #000000;
+
+    border-radius: 7px;
+
+    background: #000000;
+
+    color: #ffffff;
+
+    font-size: 15px;
+
+    font-weight: 900;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+
+.logout-button:hover {
+    background: #f5c400;
+
+    color: #000000;
+}
+
+
+.logout-button:disabled {
+    opacity: 0.6;
+
+    cursor: not-allowed;
+}
+
+
+/* =====================================================
+   CONTEÚDO PRINCIPAL
+===================================================== */
+
+.main {
+    flex: 1;
+
+    width: 100%;
+
+    min-width: 0;
+}
+
+
+/* =====================================================
+   ÁREA DE BOAS-VINDAS
+   COMPACTA
+===================================================== */
+
+.welcome {
+    width: 100%;
+
+    min-height: 300px;
+
+    padding:
+        16px
+        15px
+        24px;
+
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: center;
+
+    background: #f5c400;
+
+    border-bottom:
+        3px solid
+        #000000;
+}
+
+
+.welcome-content {
+    width: 100%;
+
+    max-width: 1000px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: flex-start;
+
+    text-align: center;
+}
+
+
+/* =====================================================
+   LOGO DA ÁREA DE BOAS-VINDAS
+   BEM PRÓXIMA DO CABEÇALHO
+===================================================== */
+
+.welcome-logo {
+    display: block;
+
+    width:
+        clamp(
+            100px,
+            16vw,
+            170px
+        );
+
+    max-width: 55vw;
+
+    max-height: 115px;
+
+    height: auto;
+
+    object-fit: contain;
+
+    margin-top: 0;
+
+    margin-bottom: 4px;
+}
+
+
+/* =====================================================
+   NOME POSTOCHECK
+===================================================== */
+
+.welcome-label {
+    display: block;
+
+    margin-bottom: 8px;
+
+    font-size:
+        clamp(
+            12px,
+            1.8vw,
+            18px
+        );
+
+    font-weight: 900;
+
+    letter-spacing:
+        clamp(
+            1px,
+            0.4vw,
+            4px
+        );
+
+    line-height: 1;
+}
+
+
+/* =====================================================
+   TÍTULO BEM-VINDO
+===================================================== */
+
+.welcome h1 {
+    margin-bottom: 7px;
+
+    font-size:
+        clamp(
+            34px,
+            6vw,
+            65px
+        );
+
+    line-height: 1;
+
+    font-weight: 900;
+
+    overflow-wrap: break-word;
+}
+
+
+/* =====================================================
+   TEXTO INFERIOR
+===================================================== */
+
+.welcome p {
+    width: 100%;
+
+    max-width: 600px;
+
+    margin: 0 auto;
+
+    font-size:
+        clamp(
+            13px,
+            1.8vw,
+            17px
+        );
+
+    font-weight: 600;
+
+    line-height: 1.3;
+}
+
+
+/* =====================================================
+   CARD INFORMATIVO
+===================================================== */
+
+.home-content {
+    width: 100%;
+
+    max-width: 1200px;
+
+    margin: 0 auto;
+
+    padding:
+        28px
+        clamp(
+            15px,
+            4vw,
+            30px
+        );
+}
+
+
+.home-card {
+    width: 100%;
+
+    min-width: 0;
+
+    padding:
+        clamp(
+            18px,
+            4vw,
+            30px
+        );
+
+    display: flex;
+
+    align-items: center;
+
+    gap:
+        clamp(
+            14px,
+            3vw,
+            22px
+        );
+
+    border:
+        2px solid
+        #000000;
+
+    border-radius: 12px;
+
+    background: #ffffff;
+
+    box-shadow:
+        6px
+        6px
+        0
+        #f5c400;
+}
+
+
+.home-card-icon {
+    width:
+        clamp(
+            50px,
+            7vw,
+            64px
+        );
+
+    height:
+        clamp(
+            50px,
+            7vw,
+            64px
+        );
+
+    min-width:
+        clamp(
+            50px,
+            7vw,
+            64px
+        );
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border:
+        3px solid
+        #000000;
+
+    border-radius: 10px;
+
+    background: #f5c400;
+
+    font-size:
+        clamp(
+            23px,
+            4vw,
+            30px
+        );
+
+    font-weight: 900;
+}
+
+
+.home-card-text {
+    min-width: 0;
+}
+
+
+.home-card h2 {
+    margin-bottom: 6px;
+
+    font-size:
+        clamp(
+            19px,
+            3vw,
+            25px
+        );
+
+    font-weight: 900;
+
+    overflow-wrap: break-word;
+}
+
+
+.home-card p {
+    font-size:
+        clamp(
+            14px,
+            2vw,
+            16px
+        );
+
+    line-height: 1.45;
+
+    color: #333333;
+}
+
+
+/* =====================================================
+   RODAPÉ
+===================================================== */
+
+.footer {
+    width: 100%;
+
+    padding:
+        15px
+        15px
+        max(
+            15px,
+            env(
+                safe-area-inset-bottom
+            )
+        );
+
+    text-align: center;
+
+    background: #000000;
+
+    color: #ffffff;
+
+    border-top:
+        3px solid
+        #f5c400;
+
+    flex-shrink: 0;
+}
+
+
+.footer p {
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+
+/* =====================================================
+   TABLET
+===================================================== */
+
+@media (max-width: 768px) {
+
+    .welcome {
+        min-height: 285px;
+
+        padding-top: 14px;
+
+        padding-bottom: 22px;
+    }
+
+
+    .welcome-logo {
+        width:
+            clamp(
+                105px,
+                22vw,
+                160px
+            );
+
+        max-height: 105px;
+    }
+
+
+    .home-card {
+        align-items: flex-start;
+    }
+
+}
+
+
+/* =====================================================
+   CELULAR
+===================================================== */
+
+@media (max-width: 600px) {
+
+    .header {
+        min-height: 58px;
+    }
+
+
+    .header-content {
+        min-height: 55px;
+
+        padding-left: 7px;
+
+        padding-right: 7px;
+    }
+
+
+    .header-login-button {
+        min-width: 66px;
+
+        padding-left: 8px;
+
+        padding-right: 8px;
+
+        font-size: 11px;
+    }
+
+
+    .welcome {
+        min-height: 270px;
+
+        padding-top: 10px;
+
+        padding-bottom: 20px;
+    }
+
+
+    .welcome-logo {
+        width: 120px;
+
+        max-height: 92px;
+
+        margin-bottom: 3px;
+    }
+
+
+    .welcome-label {
+        font-size: 11px;
+
+        letter-spacing: 1.5px;
+
+        margin-bottom: 7px;
+    }
+
+
+    .welcome h1 {
+        font-size:
+            clamp(
+                34px,
+                10vw,
+                50px
+            );
+
+        margin-bottom: 6px;
+    }
+
+
+    .welcome p {
+        font-size: 13px;
+
+        line-height: 1.25;
+    }
+
+
+    .home-content {
+        padding-top: 24px;
+
+        padding-bottom: 24px;
+    }
+
+
+    .home-card {
+        flex-direction: column;
+
+        align-items: flex-start;
+    }
+
+}
+
+
+/* =====================================================
+   CELULAR PEQUENO
+===================================================== */
+
+@media (max-width: 400px) {
+
+    .header {
+        min-height: 55px;
+    }
+
+
+    .header-content {
+        min-height: 52px;
+    }
+
+
+    .header-login-button {
+        min-width: 62px;
+
+        padding-left: 6px;
+
+        padding-right: 6px;
+
+        font-size: 10px;
+    }
+
+
+    .welcome {
+        min-height: 250px;
+
+        padding-top: 8px;
+
+        padding-bottom: 17px;
+    }
+
+
+    .welcome-logo {
+        width: 105px;
+
+        max-height: 80px;
+    }
+
+
+    .welcome-label {
+        font-size: 10px;
+
+        letter-spacing: 1.2px;
+
+        margin-bottom: 6px;
+    }
+
+
+    .welcome h1 {
+        font-size: 34px;
+
+        margin-bottom: 5px;
+    }
+
+
+    .welcome p {
+        font-size: 12px;
+    }
+
+
+    .side-menu {
+        width: 92vw;
+    }
+
+}
+
+
+/* =====================================================
+   TELAS MUITO BAIXAS
+===================================================== */
+
+@media (max-height: 550px) {
+
+    .header {
+        min-height: 54px;
+    }
+
+
+    .header-content {
+        min-height: 51px;
+
+        padding-top: 4px;
+
+        padding-bottom: 4px;
+    }
+
+
+    .welcome {
+        min-height: 225px;
+
+        padding-top: 6px;
+
+        padding-bottom: 14px;
+    }
+
+
+    .welcome-logo {
+        width: 90px;
+
+        max-height: 68px;
+
+        margin-bottom: 2px;
+    }
+
+
+    .welcome-label {
+        margin-bottom: 5px;
+    }
+
+
+    .welcome h1 {
+        margin-bottom: 4px;
+    }
+
+
+    .home-content {
+        padding-top: 20px;
+
+        padding-bottom: 20px;
+    }
+
+}
+

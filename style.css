@@ -1,0 +1,367 @@
+/* =====================================================
+   POSTOCHECK
+   LOGIN
+   TOTALMENTE RESPONSIVO
+===================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+html {
+    width: 100%;
+    min-height: 100%;
+}
+
+
+body {
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+
+    overflow-x: hidden;
+
+    background: #ffffff;
+    color: #000000;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+}
+
+
+/* =====================================================
+   PÁGINA
+===================================================== */
+
+.page {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    padding:
+        clamp(15px, 5vw, 40px);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #ffffff;
+}
+
+
+/* =====================================================
+   CARD
+===================================================== */
+
+.login-card {
+    width: min(100%, 430px);
+
+    padding:
+        clamp(25px, 6vw, 45px)
+        clamp(18px, 6vw, 40px);
+
+    background: #ffffff;
+
+    border: 2px solid #000000;
+    border-radius: clamp(10px, 3vw, 18px);
+
+    box-shadow:
+        0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =====================================================
+   LOGO
+===================================================== */
+
+.logo-area {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    margin-bottom: clamp(25px, 6vw, 35px);
+}
+
+
+.login-logo-link {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    text-decoration: none;
+}
+
+
+.logo {
+    display: block;
+
+    width: min(270px, 82vw);
+    max-width: 100%;
+    max-height: 150px;
+
+    height: auto;
+
+    object-fit: contain;
+}
+
+
+.subtitle {
+    margin-top: clamp(12px, 3vw, 18px);
+
+    font-size: clamp(14px, 3vw, 17px);
+    font-weight: 600;
+
+    text-align: center;
+
+    color: #333333;
+}
+
+
+/* =====================================================
+   FORMULÁRIO
+===================================================== */
+
+.login-form {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: clamp(15px, 4vw, 20px);
+}
+
+
+.input-group {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+
+.input-group label {
+    font-size: clamp(14px, 3vw, 15px);
+    font-weight: 700;
+}
+
+
+.input-group input {
+    width: 100%;
+    height: clamp(48px, 12vw, 52px);
+
+    padding:
+        0 clamp(12px, 3vw, 15px);
+
+    border: 2px solid #000000;
+    border-radius: 8px;
+
+    background: #ffffff;
+    color: #000000;
+
+    font-size: 16px;
+
+    outline: none;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.input-group input:focus {
+    border-color: #f5c400;
+
+    box-shadow:
+        0 0 0 3px rgba(245, 196, 0, 0.25);
+}
+
+
+.input-group input::placeholder {
+    color: #777777;
+}
+
+
+/* =====================================================
+   BOTÃO
+===================================================== */
+
+.login-button {
+    width: 100%;
+    min-height: 50px;
+
+    margin-top: 3px;
+
+    border: 2px solid #000000;
+    border-radius: 8px;
+
+    background: #f5c400;
+    color: #000000;
+
+    font-size: clamp(15px, 3vw, 17px);
+    font-weight: 900;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease,
+        box-shadow 0.2s ease;
+}
+
+
+.login-button:hover {
+    background: #ffd633;
+
+    box-shadow:
+        0 5px 0 #000000;
+}
+
+
+.login-button:active {
+    transform: translateY(3px);
+
+    box-shadow: none;
+}
+
+
+.login-button:disabled {
+    opacity: 0.65;
+
+    cursor: not-allowed;
+
+    box-shadow: none;
+}
+
+
+/* =====================================================
+   MENSAGEM
+===================================================== */
+
+.message {
+    width: 100%;
+
+    min-height: 22px;
+
+    text-align: center;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    line-height: 1.4;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =====================================================
+   VOLTAR
+===================================================== */
+
+.back-home {
+    display: block;
+
+    margin-top: 22px;
+
+    text-align: center;
+
+    color: #000000;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+
+.back-home:hover {
+    color: #b08b00;
+
+    text-decoration: underline;
+}
+
+
+/* =====================================================
+   CELULAR
+===================================================== */
+
+@media (max-width: 480px) {
+
+    .page {
+        align-items: flex-start;
+
+        padding-top: 20px;
+        padding-bottom: 20px;
+    }
+
+
+    .login-card {
+        margin-top: 0;
+    }
+
+
+    .logo {
+        width: min(230px, 80vw);
+        max-height: 125px;
+    }
+
+}
+
+
+/* =====================================================
+   TELAS MUITO BAIXAS
+===================================================== */
+
+@media (max-height: 600px) {
+
+    .page {
+        align-items: flex-start;
+
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+
+    .login-card {
+        padding-top: 20px;
+        padding-bottom: 20px;
+    }
+
+
+    .logo {
+        max-height: 90px;
+        width: min(210px, 65vw);
+    }
+
+
+    .logo-area {
+        margin-bottom: 18px;
+    }
+
+
+    .subtitle {
+        margin-top: 8px;
+    }
+
+
+    .login-form {
+        gap: 12px;
+    }
+
+
+    .back-home {
+        margin-top: 14px;
+    }
+
+}
+

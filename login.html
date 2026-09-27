@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Área de acesso do PostoCheck"
+    >
+
+    <title>PostoCheck - Login</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =================================================
+         PÁGINA DE LOGIN
+    ================================================== -->
+
+    <main class="page">
+
+
+        <section class="login-card">
+
+
+            <!-- =================================================
+                 LOGO
+            ================================================== -->
+
+            <div class="logo-area">
+
+                <a
+                    href="index.html"
+                    class="login-logo-link"
+                    aria-label="Voltar para a página inicial"
+                >
+
+                    <img
+                        src="logo.png"
+                        alt="Logo PostoCheck"
+                        class="logo"
+                    >
+
+                </a>
+
+
+                <p class="subtitle">
+                    Acesse sua conta
+                </p>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 FORMULÁRIO
+            ================================================== -->
+
+            <form
+                id="loginForm"
+                class="login-form"
+            >
+
+
+                <!-- E-MAIL -->
+
+                <div class="input-group">
+
+                    <label for="email">
+                        E-mail
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Digite seu e-mail"
+                        autocomplete="email"
+                        required
+                    >
+
+                </div>
+
+
+
+                <!-- SENHA -->
+
+                <div class="input-group">
+
+                    <label for="password">
+                        Senha
+                    </label>
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Digite sua senha"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                </div>
+
+
+
+                <!-- ENTRAR -->
+
+                <button
+                    type="submit"
+                    id="loginButton"
+                    class="login-button"
+                >
+                    ENTRAR
+                </button>
+
+
+
+                <!-- MENSAGEM -->
+
+                <div
+                    id="message"
+                    class="message"
+                    aria-live="polite"
+                ></div>
+
+            </form>
+
+
+
+            <!-- VOLTAR -->
+
+            <a
+                href="index.html"
+                class="back-home"
+            >
+                ← Voltar para a página inicial
+            </a>
+
+
+        </section>
+
+    </main>
+
+
+
+    <!-- =================================================
+         JAVASCRIPT
+    ================================================== -->
+
+    <script
+        type="module"
+        src="./app.js"
+    ></script>
+
+
+</body>
+
+</html>
+
