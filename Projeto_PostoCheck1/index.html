@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Página inicial do PostoCheck"
+    >
+
+    <title>PostoCheck - Início</title>
+
+    <link
+        rel="stylesheet"
+        href="homepage.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =================================================
+         CABEÇALHO
+    ================================================== -->
+
+    <header class="header">
+
+        <div class="header-content">
+
+
+            <!-- BOTÃO DO MENU -->
+
+            <button
+                type="button"
+                id="menuButton"
+                class="menu-button"
+                aria-label="Abrir menu"
+                aria-expanded="false"
+                style="display: none;"
+            >
+                ☰
+            </button>
+
+
+            <!-- BOTÃO LOGAR -->
+
+            <a
+                href="login.html"
+                id="loginPageButton"
+                class="header-login-button"
+            >
+                LOGAR
+            </a>
+
+
+        </div>
+
+    </header>
+
+
+    <!-- =================================================
+         OVERLAY DO MENU
+    ================================================== -->
+
+    <div
+        id="menuOverlay"
+        class="menu-overlay"
+    ></div>
+
+
+    <!-- =================================================
+         MENU LATERAL
+    ================================================== -->
+
+    <aside
+        id="sideMenu"
+        class="side-menu"
+        aria-hidden="true"
+    >
+
+
+        <!-- CABEÇALHO DO MENU -->
+
+        <div class="side-menu-header">
+
+            <div class="side-menu-title">
+
+                <img
+                    src="logo.png"
+                    alt="Logo PostoCheck"
+                    class="side-menu-logo"
+                >
+
+                <span>
+                    Menu
+                </span>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="closeMenuButton"
+                class="close-menu-button"
+                aria-label="Fechar menu"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <!-- =================================================
+             OPÇÕES DO MENU
+        ================================================== -->
+
+        <nav class="side-menu-nav">
+
+
+            <!-- AUDITORIAS DO POSTO -->
+
+            <a
+                href="auditorias.html"
+                class="side-menu-item"
+            >
+
+                <span class="side-menu-icon">
+                    ✓
+                </span>
+
+                <span>
+                    Auditorias do posto
+                </span>
+
+            </a>
+
+
+        </nav>
+
+
+        <!-- =================================================
+             USUÁRIO
+        ================================================== -->
+
+        <div class="side-menu-footer">
+
+
+            <div class="side-menu-user">
+
+                <span class="side-menu-user-label">
+                    Usuário conectado
+                </span>
+
+                <span
+                    id="sideMenuUserEmail"
+                    class="side-menu-user-email"
+                >
+                    Carregando...
+                </span>
+
+            </div>
+
+
+            <button
+                type="button"
+                id="logoutButton"
+                class="logout-button"
+            >
+                DESLOGAR
+            </button>
+
+
+        </div>
+
+
+    </aside>
+
+
+    <!-- =================================================
+         CONTEÚDO PRINCIPAL
+    ================================================== -->
+
+    <main class="main">
+
+
+        <!-- =================================================
+             ÁREA DE BOAS-VINDAS
+        ================================================== -->
+
+        <section class="welcome">
+
+
+            <div class="welcome-content">
+
+
+                <!-- LOGO -->
+
+                <img
+                    src="logo.png"
+                    alt="Logo PostoCheck"
+                    class="welcome-logo"
+                >
+
+
+                <!-- NOME -->
+
+                <span class="welcome-label">
+                    POSTOCHECK
+                </span>
+
+
+                <!-- TÍTULO -->
+
+                <h1>
+                    Bem-vindo!
+                </h1>
+
+
+                <!-- DESCRIÇÃO -->
+
+                <p>
+                    Utilize o menu lateral para
+                    acessar as opções do sistema.
+                </p>
+
+
+            </div>
+
+
+        </section>
+
+
+        <!-- =================================================
+             CARD
+        ================================================== -->
+
+        <section class="home-content">
+
+
+            <div class="home-card">
+
+
+                <span class="home-card-icon">
+                    ✓
+                </span>
+
+
+                <div class="home-card-text">
+
+                    <h2>
+                        Sistema PostoCheck
+                    </h2>
+
+
+                    <p>
+                        Faça login para acessar
+                        todas as opções do sistema.
+                    </p>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+
+    <!-- =================================================
+         RODAPÉ
+    ================================================== -->
+
+    <footer class="footer">
+
+        <p>
+            © 2026 PostoCheck
+        </p>
+
+    </footer>
+
+
+    <!-- =================================================
+         JAVASCRIPT
+    ================================================== -->
+
+    <script
+        type="module"
+        src="./app.js"
+    ></script>
+
+
+</body>
+
+</html>
+
