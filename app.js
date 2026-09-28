@@ -1,5 +1,12 @@
+"use strict";
+
 /* ==========================================================
    POSTOCHECK - APP.JS
+   ========================================================== */
+
+
+/* ==========================================================
+   FIREBASE
    ========================================================== */
 
 import {
@@ -27,7 +34,7 @@ import firebaseConfig from "./firebase-config.js";
 
 
 /* ==========================================================
-   FIREBASE
+   INICIALIZAÇÃO DO FIREBASE
    ========================================================== */
 
 const app =
@@ -40,7 +47,28 @@ const db = getFirestore(app);
 
 
 /* ==========================================================
-   ELEMENTOS DA INTERFACE
+   IDENTIFICAÇÃO DA PÁGINA
+   ========================================================== */
+
+const currentPage =
+    window.location.pathname
+        .split("/")
+        .pop()
+        .toLowerCase();
+
+const isLoginPage =
+    currentPage === "login.html";
+
+const isHomePage =
+    currentPage === "" ||
+    currentPage === "index.html";
+
+const isMaintenancePage =
+    currentPage === "manutencao.html";
+
+
+/* ==========================================================
+   ELEMENTOS DO MENU
    ========================================================== */
 
 const menuButton =
@@ -66,7 +94,7 @@ const sideMenuUserEmail =
 
 
 /* ==========================================================
-   LOGIN
+   ELEMENTOS DO LOGIN
    ========================================================== */
 
 const loginForm =
@@ -86,44 +114,22 @@ const loginButton =
 
 
 /* ==========================================================
-   ESTADO DA APLICAÇÃO
+   ESTADO
    ========================================================== */
 
 let currentUser = null;
 
 let userIsLoggedIn = false;
 
-let maintenanceCheckInProgress = false;
-
 let recurrenceChart = null;
 
+let resizeTimeout = null;
 
-/* ==========================================================
-   IDENTIFICAR PÁGINA ATUAL
-   ========================================================== */
-
-const currentPage =
-    window.location.pathname
-        .split("/")
-        .pop()
-        .toLowerCase();
-
-
-const isLoginPage =
-    currentPage === "login.html";
-
-
-const isHomePage =
-    currentPage === "" ||
-    currentPage === "index.html";
-
-
-const isMaintenancePage =
-    currentPage === "manutencao.html";
+let maintenanceCheckInProgress = false;
 
 
 /* ==========================================================
-   MENU LATERAL
+   MENU
    ========================================================== */
 
 function openMenu() {
@@ -190,7 +196,7 @@ if (menuOverlay) {
 
 
 /* ==========================================================
-   BOTÃO LOGIN
+   BOTÃO DE LOGIN
    ========================================================== */
 
 if (loginPageButton) {
@@ -218,12 +224,10 @@ if (loginForm) {
 
             event.preventDefault();
 
-
             const email =
                 emailInput
                     ? emailInput.value.trim()
                     : "";
-
 
             const password =
                 passwordInput
@@ -241,6 +245,9 @@ if (loginForm) {
             }
 
 
+            hideLoginError();
+
+
             if (loginButton) {
 
                 loginButton.disabled =
@@ -251,17 +258,14 @@ if (loginForm) {
             }
 
 
-            hideLoginError();
-
-
             try {
 
                 /*
-                 * O redirecionamento NÃO acontece aqui.
+                 * Não redirecionamos manualmente aqui.
                  *
-                 * Primeiro o Firebase confirma o login.
-                 * Depois onAuthStateChanged() verifica
-                 * se existe manutenção.
+                 * O Firebase confirma a autenticação
+                 * e o onAuthStateChanged() decide
+                 * para onde o usuário deve ir.
                  */
 
                 await signInWithEmailAndPassword(
@@ -270,12 +274,11 @@ if (loginForm) {
                     password
                 );
 
-
             }
             catch (error) {
 
                 console.error(
-                    "Erro ao fazer login:",
+                    "PostoCheck: erro ao fazer login:",
                     error
                 );
 
@@ -355,7 +358,7 @@ if (loginForm) {
 
 
 /* ==========================================================
-   ERROS DE LOGIN
+   ERRO DE LOGIN
    ========================================================== */
 
 function showLoginError(message) {
@@ -371,11 +374,11 @@ function showLoginError(message) {
     loginError.textContent =
         message;
 
-    loginError.style.display =
-        "block";
-
     loginError.hidden =
         false;
+
+    loginError.style.display =
+        "block";
 }
 
 
@@ -390,11 +393,11 @@ function hideLoginError() {
     loginError.textContent =
         "";
 
-    loginError.style.display =
-        "none";
-
     loginError.hidden =
         true;
+
+    loginError.style.display =
+        "none";
 }
 
 
@@ -422,7 +425,7 @@ if (logoutButton) {
             catch (error) {
 
                 console.error(
-                    "Erro ao deslogar:",
+                    "PostoCheck: erro ao sair:",
                     error
                 );
 
@@ -436,24 +439,10 @@ if (logoutButton) {
 
 
 /* ==========================================================
-   VERIFICAR MODO DE MANUTENÇÃO
+   VERIFICAR MANUTENÇÃO
    ========================================================== */
 
-/*
- * IMPORTANTE:
- *
- * Esta função NÃO é chamada para usuários deslogados.
- *
- * Ela só é executada depois que o Firebase confirma
- * que existe um usuário autenticado.
- */
-
 async function checkMaintenanceMode() {
-
-    console.log(
-        "PostoCheck: verificando manutenção..."
-    );
-
 
     try {
 
@@ -465,30 +454,24 @@ async function checkMaintenanceMode() {
             );
 
 
-        console.log(
-            "PostoCheck: lendo configuracoes/sistema..."
-        );
-
-
         const configSnapshot =
             await getDoc(
                 configRef
             );
 
 
+        /*
+         * Se o documento não existir,
+         * o sistema considera a manutenção desligada.
+         */
+
         if (
             !configSnapshot.exists()
         ) {
 
             console.warn(
-                "PostoCheck: configuracoes/sistema não existe."
+                "PostoCheck: documento configuracoes/sistema não existe."
             );
-
-
-            /*
-             * Se não existe configuração,
-             * considera manutenção desligada.
-             */
 
             return false;
         }
@@ -498,23 +481,15 @@ async function checkMaintenanceMode() {
             configSnapshot.data();
 
 
-        console.log(
-            "PostoCheck: configuração:",
-            config
+        /*
+         * SOMENTE o booleano true ativa manutenção.
+         *
+         * "true" como texto NÃO ativa.
+         */
+
+        return (
+            config.manutencaoAtiva === true
         );
-
-
-        const maintenanceActive =
-            config.manutencaoAtiva === true;
-
-
-        console.log(
-            "PostoCheck: manutenção ativa:",
-            maintenanceActive
-        );
-
-
-        return maintenanceActive;
 
     }
     catch (error) {
@@ -526,8 +501,8 @@ async function checkMaintenanceMode() {
 
 
         /*
-         * Em caso de erro de leitura, não redirecionamos
-         * automaticamente para manutenção.
+         * Em caso de erro de leitura,
+         * não bloqueamos o sistema.
          */
 
         return false;
@@ -536,23 +511,16 @@ async function checkMaintenanceMode() {
 
 
 /* ==========================================================
-   ATUALIZAR INTERFACE
+   ATUALIZAR INTERFACE DE ACORDO COM AUTENTICAÇÃO
    ========================================================== */
 
 async function updateInterface(user) {
 
-    /*
-     * ======================================================
-     * USUÁRIO NÃO AUTENTICADO
-     * ======================================================
-     */
+    /* ======================================================
+       USUÁRIO NÃO AUTENTICADO
+       ====================================================== */
 
     if (!user) {
-
-        console.log(
-            "PostoCheck: nenhum usuário autenticado."
-        );
-
 
         currentUser =
             null;
@@ -588,15 +556,15 @@ async function updateInterface(user) {
 
 
         /*
-         * Se estiver na página de manutenção sem
-         * estar logado, NÃO permanece nela.
+         * Manutenção só pode aparecer depois
+         * que o login for confirmado.
          *
-         * Vai para o login.
+         * Portanto, se alguém tentar acessar
+         * manutencao.html diretamente sem login,
+         * volta para login.
          */
 
-        if (
-            isMaintenancePage
-        ) {
+        if (isMaintenancePage) {
 
             window.location.replace(
                 "login.html"
@@ -607,8 +575,7 @@ async function updateInterface(user) {
 
 
         /*
-         * Se estiver em uma página protegida,
-         * também vai para o login.
+         * Outras páginas protegidas.
          */
 
         if (
@@ -628,11 +595,9 @@ async function updateInterface(user) {
     }
 
 
-    /*
-     * ======================================================
-     * USUÁRIO AUTENTICADO
-     * ======================================================
-     */
+    /* ======================================================
+       USUÁRIO AUTENTICADO
+       ====================================================== */
 
     currentUser =
         user;
@@ -647,19 +612,13 @@ async function updateInterface(user) {
     );
 
 
-    /*
-     * ======================================================
-     * AGORA SIM VERIFICAR MANUTENÇÃO
-     * ======================================================
-     */
+    /* ======================================================
+       VERIFICAR MANUTENÇÃO SOMENTE APÓS LOGIN
+       ====================================================== */
 
     let maintenanceActive =
         false;
 
-
-    /*
-     * Evita duas verificações simultâneas.
-     */
 
     if (
         !maintenanceCheckInProgress
@@ -680,80 +639,46 @@ async function updateInterface(user) {
             maintenanceCheckInProgress =
                 false;
         }
-
     }
 
 
     console.log(
-        "PostoCheck: resultado manutenção:",
+        "PostoCheck: manutenção ativa:",
         maintenanceActive
     );
 
 
-    /*
-     * ======================================================
-     * MANUTENÇÃO ATIVA
-     * ======================================================
-     */
+    /* ======================================================
+       MANUTENÇÃO ATIVA
+       ====================================================== */
 
     if (
         maintenanceActive === true
     ) {
 
-        console.log(
-            "PostoCheck: MANUTENÇÃO ATIVA."
-        );
-
-
-        /*
-         * O usuário já está autenticado.
-         *
-         * Agora pode ser enviado para a página
-         * de manutenção.
-         */
-
         if (
             !isMaintenancePage
         ) {
 
-            console.log(
-                "PostoCheck: redirecionando para manutencao.html..."
-            );
-
-
             window.location.replace(
                 "manutencao.html"
             );
-
 
             return;
         }
 
 
         /*
-         * Se já estiver na manutenção,
-         * não faz nada.
+         * Já está na manutenção.
          */
 
         return;
     }
 
 
-    /*
-     * ======================================================
-     * MANUTENÇÃO DESATIVADA
-     * ======================================================
-     */
-
-    console.log(
-        "PostoCheck: manutenção desativada."
-    );
-
-
-    /*
-     * Se estiver na manutenção e a manutenção
-     * foi desligada, volta para a Home.
-     */
+    /* ======================================================
+       MANUTENÇÃO DESATIVADA
+       ====================================================== */
 
     if (
         isMaintenancePage
@@ -767,38 +692,25 @@ async function updateInterface(user) {
     }
 
 
-    /*
-     * ======================================================
-     * LOGIN REALIZADO COM SUCESSO
-     * ======================================================
-     *
-     * Se a manutenção estiver desligada e o usuário
-     * ainda estiver na tela de login, vai para Home.
-     */
+    /* ======================================================
+       LOGIN CONCLUÍDO
+       ====================================================== */
 
     if (
         isLoginPage
     ) {
 
-        console.log(
-            "PostoCheck: login concluído. Indo para index.html..."
-        );
-
-
         window.location.replace(
             "index.html"
         );
-
 
         return;
     }
 
 
-    /*
-     * ======================================================
-     * INTERFACE NORMAL
-     * ======================================================
-     */
+    /* ======================================================
+       INTERFACE NORMAL
+       ====================================================== */
 
     if (menuButton) {
 
@@ -822,11 +734,9 @@ async function updateInterface(user) {
     }
 
 
-    /*
-     * ======================================================
-     * GRÁFICO DE REINCIDÊNCIA
-     * ======================================================
-     */
+    /* ======================================================
+       GRÁFICO
+       ====================================================== */
 
     if (isHomePage) {
 
@@ -838,7 +748,7 @@ async function updateInterface(user) {
 
 
 /* ==========================================================
-   AUTH STATE
+   FIREBASE AUTH STATE
    ========================================================== */
 
 onAuthStateChanged(
@@ -846,17 +756,11 @@ onAuthStateChanged(
     function (user) {
 
         console.log(
-            "PostoCheck: alteração no estado de autenticação:",
             user
-                ? user.email
-                : "deslogado"
+                ? "PostoCheck: login confirmado."
+                : "PostoCheck: usuário não autenticado."
         );
 
-
-        /*
-         * A partir daqui o Firebase já confirmou
-         * se existe ou não um usuário.
-         */
 
         updateInterface(
             user
@@ -866,7 +770,7 @@ onAuthStateChanged(
 
 
 /* ==========================================================
-   FUNÇÃO PARA NORMALIZAR TEXTO
+   NORMALIZAR TEXTO
    ========================================================== */
 
 function normalizeText(value) {
@@ -883,7 +787,7 @@ function normalizeText(value) {
 
 
 /* ==========================================================
-   FORMATAR DATA DA AUDITORIA
+   FORMATAR DATA
    ========================================================== */
 
 function formatAuditDate(value) {
@@ -895,9 +799,10 @@ function formatAuditDate(value) {
 
 
     /*
-     * Caso seja uma string YYYY-MM-DD,
-     * tratamos manualmente para evitar
-     * alteração de dia por timezone.
+     * YYYY-MM-DD
+     *
+     * Tratado manualmente para evitar
+     * problemas de timezone.
      */
 
     if (
@@ -905,22 +810,18 @@ function formatAuditDate(value) {
         /^\d{4}-\d{2}-\d{2}$/.test(value)
     ) {
 
-        const [
-            year,
-            month,
-            day
-        ] =
+        const parts =
             value.split("-");
 
 
         return (
-            `${day}/${month}/${year}`
+            `${parts[2]}/${parts[1]}/${parts[0]}`
         );
     }
 
 
     /*
-     * Timestamp do Firestore.
+     * Timestamp Firestore.
      */
 
     if (
@@ -928,18 +829,16 @@ function formatAuditDate(value) {
         typeof value.toDate === "function"
     ) {
 
-        const date =
-            value.toDate();
-
-
-        return date.toLocaleDateString(
-            "pt-BR"
-        );
+        return value
+            .toDate()
+            .toLocaleDateString(
+                "pt-BR"
+            );
     }
 
 
     /*
-     * Date normal.
+     * Date.
      */
 
     if (
@@ -979,7 +878,7 @@ function formatAuditDate(value) {
 
 
 /* ==========================================================
-   BUSCAR AUDITORIAS DO USUÁRIO
+   BUSCAR AUDITORIAS
    ========================================================== */
 
 async function getAuditsForUser(user) {
@@ -1011,16 +910,12 @@ async function getAuditsForUser(user) {
     snapshot.forEach(
         function (auditDoc) {
 
-            const data =
-                auditDoc.data();
-
-
             audits.push({
 
                 id:
                     auditDoc.id,
 
-                ...data
+                ...auditDoc.data()
 
             });
         }
@@ -1032,7 +927,7 @@ async function getAuditsForUser(user) {
 
 
 /* ==========================================================
-   BUSCAR PERGUNTAS DO CHECKLIST
+   BUSCAR PERGUNTAS
    ========================================================== */
 
 async function getAuditQuestions(user) {
@@ -1069,7 +964,7 @@ async function getAuditQuestions(user) {
 
 
             /*
-             * Perguntas desativadas não participam.
+             * Pergunta desativada não participa.
              */
 
             if (
@@ -1105,6 +1000,10 @@ async function getAuditQuestions(user) {
     );
 
 
+    /*
+     * Ordenar pelas perguntas.
+     */
+
     questions.sort(
         function (a, b) {
 
@@ -1118,7 +1017,7 @@ async function getAuditQuestions(user) {
 
 
 /* ==========================================================
-   PEGAR RESPOSTA DA AUDITORIA
+   PEGAR RESPOSTA
    ========================================================== */
 
 function getAuditAnswer(
@@ -1143,7 +1042,7 @@ function getAuditAnswer(
 
 
 /* ==========================================================
-   VERIFICAR SE RESPOSTA É NÃO CONFORME
+   VERIFICAR RESPOSTA "NÃO"
    ========================================================== */
 
 function isNonConformingAnswer(
@@ -1157,8 +1056,7 @@ function isNonConformingAnswer(
 
 
     /*
-     * Só consideramos reincidência para
-     * perguntas do tipo SIM / NÃO.
+     * Reincidência somente para SIM/NÃO.
      */
 
     if (
@@ -1191,24 +1089,12 @@ function calculateRecurrence(
     questions
 ) {
 
-    /*
-     * Estrutura:
-     *
-     * questionId -> {
-     *     question,
-     *     category,
-     *     count,
-     *     dates
-     * }
-     */
-
     const recurrenceMap =
         new Map();
 
 
     /*
-     * Cada auditoria conta no máximo uma vez
-     * para cada pergunta.
+     * Percorre cada auditoria.
      */
 
     audits.forEach(
@@ -1221,11 +1107,15 @@ function calculateRecurrence(
                 );
 
 
+            /*
+             * Percorre cada pergunta.
+             */
+
             questions.forEach(
                 function (question) {
 
                     /*
-                     * Só perguntas SIM/NÃO.
+                     * Só SIM/NÃO.
                      */
 
                     if (
@@ -1243,6 +1133,10 @@ function calculateRecurrence(
                             question.id
                         );
 
+
+                    /*
+                     * Só resposta NAO.
+                     */
 
                     if (
                         !isNonConformingAnswer(
@@ -1292,7 +1186,7 @@ function calculateRecurrence(
 
 
                     /*
-                     * Uma auditoria = uma ocorrência.
+                     * Uma ocorrência por auditoria.
                      */
 
                     item.count += 1;
@@ -1316,45 +1210,71 @@ function calculateRecurrence(
 
 
     /*
-     * Só aparecem itens com pelo menos
-     * 2 auditorias não conformes.
+     * Ordenar datas.
      */
 
-    const recurrence =
-        Array.from(
-            recurrenceMap.values()
-        )
-            .filter(
-                function (item) {
+    recurrenceMap.forEach(
+        function (item) {
 
-                    return item.count >= 2;
-                }
-            )
-            .sort(
+            item.dates.sort(
                 function (a, b) {
 
-                    if (
-                        b.count !== a.count
-                    ) {
+                    const dateA =
+                        a.split("/")
+                            .reverse()
+                            .join("-");
 
-                        return b.count - a.count;
-                    }
+                    const dateB =
+                        b.split("/")
+                            .reverse()
+                            .join("-");
 
 
-                    return a.question.localeCompare(
-                        b.question,
-                        "pt-BR"
+                    return dateA.localeCompare(
+                        dateB
                     );
                 }
             );
+        }
+    );
 
 
-    return recurrence;
+    /*
+     * Só mostrar reincidências com
+     * 2 ou mais auditorias.
+     */
+
+    return Array.from(
+        recurrenceMap.values()
+    )
+        .filter(
+            function (item) {
+
+                return item.count >= 2;
+            }
+        )
+        .sort(
+            function (a, b) {
+
+                if (
+                    b.count !== a.count
+                ) {
+
+                    return b.count - a.count;
+                }
+
+
+                return a.question.localeCompare(
+                    b.question,
+                    "pt-BR"
+                );
+            }
+        );
 }
 
 
 /* ==========================================================
-   MOSTRAR ESTADO DE CARREGAMENTO
+   ESTADO: CARREGANDO
    ========================================================== */
 
 function showRecurrenceLoading() {
@@ -1429,7 +1349,7 @@ function showRecurrenceLoading() {
 
 
 /* ==========================================================
-   MOSTRAR ESTADO VAZIO
+   ESTADO: VAZIO
    ========================================================== */
 
 function showRecurrenceEmpty() {
@@ -1504,7 +1424,7 @@ function showRecurrenceEmpty() {
 
 
 /* ==========================================================
-   MOSTRAR ERRO DO GRÁFICO
+   ESTADO: ERRO
    ========================================================== */
 
 function showRecurrenceError() {
@@ -1594,11 +1514,248 @@ function hideRecurrenceChart() {
 
         section.hidden = true;
     }
+
+
+    if (recurrenceChart) {
+
+        recurrenceChart.destroy();
+
+        recurrenceChart =
+            null;
+    }
 }
 
 
 /* ==========================================================
-   RENDERIZAR GRÁFICO
+   CALCULAR TAMANHO RESPONSIVO DO GRÁFICO
+   ========================================================== */
+
+function getResponsiveChartSettings(
+    recurrence
+) {
+
+    const width =
+        window.innerWidth;
+
+
+    let barHeight;
+
+    let fontSize;
+
+    let xFontSize;
+
+    let labelMaxLength;
+
+    let chartPadding;
+
+
+    /*
+     * CELULAR PEQUENO
+     */
+
+    if (width <= 400) {
+
+        barHeight = 58;
+
+        fontSize = 9;
+
+        xFontSize = 9;
+
+        labelMaxLength = 22;
+
+        chartPadding = 6;
+    }
+
+
+    /*
+     * CELULAR
+     */
+
+    else if (width <= 600) {
+
+        barHeight = 54;
+
+        fontSize = 10;
+
+        xFontSize = 10;
+
+        labelMaxLength = 28;
+
+        chartPadding = 8;
+    }
+
+
+    /*
+     * TABLET
+     */
+
+    else if (width <= 900) {
+
+        barHeight = 48;
+
+        fontSize = 11;
+
+        xFontSize = 11;
+
+        labelMaxLength = 36;
+
+        chartPadding = 10;
+    }
+
+
+    /*
+     * NOTEBOOK / DESKTOP
+     */
+
+    else {
+
+        barHeight = 44;
+
+        fontSize = 12;
+
+        xFontSize = 12;
+
+        labelMaxLength = 48;
+
+        chartPadding = 15;
+    }
+
+
+    /*
+     * Altura proporcional à quantidade
+     * de reincidências.
+     */
+
+    const calculatedHeight =
+        Math.max(
+            280,
+            recurrence.length *
+                barHeight +
+                90
+        );
+
+
+    /*
+     * Não deixa ficar exageradamente alto.
+     */
+
+    const maxHeight =
+        width <= 600
+            ? 700
+            : 900;
+
+
+    const chartHeight =
+        Math.min(
+            calculatedHeight,
+            maxHeight
+        );
+
+
+    return {
+
+        width,
+
+        barHeight,
+
+        fontSize,
+
+        xFontSize,
+
+        labelMaxLength,
+
+        chartPadding,
+
+        chartHeight
+    };
+}
+
+
+/* ==========================================================
+   QUEBRAR LABEL GRANDE
+   ========================================================== */
+
+function breakChartLabel(
+    label,
+    maxCharacters
+) {
+
+    const text =
+        normalizeText(
+            label
+        );
+
+
+    if (
+        !text ||
+        text.length <= maxCharacters
+    ) {
+
+        return text;
+    }
+
+
+    const words =
+        text.split(" ");
+
+
+    const lines = [];
+
+    let currentLine =
+        "";
+
+
+    words.forEach(
+        function (word) {
+
+            const testLine =
+                currentLine
+                    ? `${currentLine} ${word}`
+                    : word;
+
+
+            if (
+                testLine.length >
+                maxCharacters
+            ) {
+
+                if (
+                    currentLine
+                ) {
+
+                    lines.push(
+                        currentLine
+                    );
+                }
+
+
+                currentLine =
+                    word;
+
+            }
+            else {
+
+                currentLine =
+                    testLine;
+            }
+        }
+    );
+
+
+    if (currentLine) {
+
+        lines.push(
+            currentLine
+        );
+    }
+
+
+    return lines;
+}
+
+
+/* ==========================================================
+   RENDERIZAR GRÁFICO RESPONSIVO
    ========================================================== */
 
 function renderRecurrenceChart(
@@ -1645,7 +1802,7 @@ function renderRecurrenceChart(
     if (!canvas) {
 
         console.warn(
-            "Canvas recurrenceChart não encontrado."
+            "PostoCheck: recurrenceChart não encontrado."
         );
 
         return;
@@ -1657,7 +1814,7 @@ function renderRecurrenceChart(
     ) {
 
         console.error(
-            "Chart.js não foi carregado."
+            "PostoCheck: Chart.js não carregado."
         );
 
         showRecurrenceError();
@@ -1677,15 +1834,6 @@ function renderRecurrenceChart(
         loading.hidden = true;
 
         loading.style.display =
-            "none";
-    }
-
-
-    if (empty) {
-
-        empty.hidden = true;
-
-        empty.style.display =
             "none";
     }
 
@@ -1710,6 +1858,10 @@ function renderRecurrenceChart(
     }
 
 
+    /*
+     * Sem reincidências.
+     */
+
     if (
         recurrence.length === 0
     ) {
@@ -1720,12 +1872,28 @@ function renderRecurrenceChart(
     }
 
 
+    /*
+     * Exibir container.
+     */
+
     if (wrapper) {
 
         wrapper.hidden = false;
 
         wrapper.style.display =
             "block";
+
+        wrapper.style.width =
+            "100%";
+
+        wrapper.style.maxWidth =
+            "100%";
+
+        wrapper.style.overflow =
+            "hidden";
+
+        wrapper.style.position =
+            "relative";
     }
 
 
@@ -1742,6 +1910,52 @@ function renderRecurrenceChart(
     }
 
 
+    /*
+     * Configurações responsivas.
+     */
+
+    const settings =
+        getResponsiveChartSettings(
+            recurrence
+        );
+
+
+    /*
+     * Definir altura do container.
+     */
+
+    if (wrapper) {
+
+        wrapper.style.height =
+            `${settings.chartHeight}px`;
+
+        wrapper.style.minHeight =
+            "280px";
+    }
+
+
+    /*
+     * Garantir que o canvas acompanhe
+     * o tamanho do container.
+     */
+
+    canvas.style.width =
+        "100%";
+
+    canvas.style.height =
+        "100%";
+
+    canvas.style.maxWidth =
+        "100%";
+
+    canvas.style.display =
+        "block";
+
+
+    /*
+     * Labels.
+     */
+
     const labels =
         recurrence.map(
             function (item) {
@@ -1750,6 +1964,10 @@ function renderRecurrenceChart(
             }
         );
 
+
+    /*
+     * Valores.
+     */
 
     const values =
         recurrence.map(
@@ -1760,18 +1978,20 @@ function renderRecurrenceChart(
         );
 
 
+    /*
+     * Criar gráfico.
+     */
+
     recurrenceChart =
         new Chart(
             canvas,
             {
 
-                type:
-                    "bar",
+                type: "bar",
 
                 data: {
 
-                    labels:
-                        labels,
+                    labels,
 
                     datasets: [
 
@@ -1796,21 +2016,31 @@ function renderRecurrenceChart(
                                 4,
 
                             barPercentage:
-                                0.7,
+                                settings.width <= 600
+                                    ? 0.62
+                                    : 0.70,
 
                             categoryPercentage:
-                                0.8
-
+                                0.80
                         }
 
                     ]
-
                 },
+
 
                 options: {
 
+                    /*
+                     * Barra horizontal.
+                     */
+
                     indexAxis:
                         "y",
+
+
+                    /*
+                     * Responsivo.
+                     */
 
                     responsive:
                         true,
@@ -1818,15 +2048,49 @@ function renderRecurrenceChart(
                     maintainAspectRatio:
                         false,
 
+
+                    /*
+                     * Animação curta para não
+                     * prejudicar celulares.
+                     */
+
+                    animation: {
+
+                        duration:
+                            settings.width <= 600
+                                ? 200
+                                : 300
+                    },
+
+
+                    layout: {
+
+                        padding: {
+
+                            top:
+                                10,
+
+                            bottom:
+                                10,
+
+                            left:
+                                settings.chartPadding,
+
+                            right:
+                                settings.chartPadding
+                        }
+                    },
+
+
                     interaction: {
 
                         mode:
-                            "index",
+                            "nearest",
 
                         intersect:
-                            false
-
+                            true
                     },
+
 
                     plugins: {
 
@@ -1834,12 +2098,67 @@ function renderRecurrenceChart(
 
                             display:
                                 false
-
                         },
+
 
                         tooltip: {
 
+                            /*
+                             * Permite o tooltip
+                             * ficar adequado também
+                             * em telas pequenas.
+                             */
+
+                            titleFont: {
+
+                                size:
+                                    settings.width <= 600
+                                        ? 11
+                                        : 13
+                            },
+
+
+                            bodyFont: {
+
+                                size:
+                                    settings.width <= 600
+                                        ? 10
+                                        : 12
+                            },
+
+
+                            padding:
+                                settings.width <= 600
+                                    ? 8
+                                    : 10,
+
+
                             callbacks: {
+
+                                title:
+                                    function (
+                                        tooltipItems
+                                    ) {
+
+                                        if (
+                                            !tooltipItems.length
+                                        ) {
+
+                                            return "";
+                                        }
+
+
+                                        const index =
+                                            tooltipItems[0]
+                                                .dataIndex;
+
+
+                                        return (
+                                            recurrence[index]
+                                                .question
+                                        );
+                                    },
+
 
                                 label:
                                     function (
@@ -1885,8 +2204,11 @@ function renderRecurrenceChart(
 
 
                                         return [
+
                                             "",
+
                                             "Datas das reincidências:",
+
                                             ...item.dates.map(
                                                 function (
                                                     date
@@ -1895,21 +2217,25 @@ function renderRecurrenceChart(
                                                     return `• ${date}`;
                                                 }
                                             )
+
                                         ];
                                     }
-
                             }
-
                         }
-
                     },
 
+
                     scales: {
+
+                        /*
+                         * EIXO X
+                         */
 
                         x: {
 
                             beginAtZero:
                                 true,
+
 
                             ticks: {
 
@@ -1917,18 +2243,27 @@ function renderRecurrenceChart(
                                     0,
 
                                 stepSize:
-                                    1
+                                    1,
 
+                                font: {
+
+                                    size:
+                                        settings.xFontSize
+                                }
                             },
+
 
                             grid: {
 
                                 color:
                                     "rgba(0, 0, 0, 0.08)"
-
                             }
-
                         },
+
+
+                        /*
+                         * EIXO Y
+                         */
 
                         y: {
 
@@ -1936,25 +2271,58 @@ function renderRecurrenceChart(
 
                                 display:
                                     false
+                            },
 
+
+                            ticks: {
+
+                                autoSkip:
+                                    false,
+
+                                padding:
+                                    settings.width <= 600
+                                        ? 5
+                                        : 8,
+
+                                font: {
+
+                                    size:
+                                        settings.fontSize
+                                },
+
+
+                                callback:
+                                    function (
+                                        value
+                                    ) {
+
+                                        const label =
+                                            this.getLabelForValue(
+                                                value
+                                            );
+
+
+                                        return breakChartLabel(
+                                            label,
+                                            settings.labelMaxLength
+                                        );
+                                    }
                             }
-
                         }
-
                     }
-
                 }
-
             }
         );
 }
 
 
 /* ==========================================================
-   CARREGAR GRÁFICO DE REINCIDÊNCIA
+   CARREGAR GRÁFICO
    ========================================================== */
 
-async function loadRecurrenceChart(user) {
+async function loadRecurrenceChart(
+    user
+) {
 
     if (
         !user ||
@@ -1973,7 +2341,8 @@ async function loadRecurrenceChart(user) {
     try {
 
         /*
-         * Buscar auditorias e perguntas.
+         * Buscar auditorias e perguntas
+         * ao mesmo tempo.
          */
 
         const [
@@ -1994,19 +2363,19 @@ async function loadRecurrenceChart(user) {
 
 
         console.log(
-            "PostoCheck: auditorias encontradas:",
+            "PostoCheck: auditorias:",
             audits.length
         );
 
 
         console.log(
-            "PostoCheck: perguntas encontradas:",
+            "PostoCheck: perguntas:",
             questions.length
         );
 
 
         /*
-         * Atualizar contador de auditorias.
+         * Contador.
          */
 
         const auditCountElement =
@@ -2084,7 +2453,7 @@ async function loadRecurrenceChart(user) {
     catch (error) {
 
         console.error(
-            "PostoCheck: erro ao carregar reincidências:",
+            "PostoCheck: erro ao carregar gráfico:",
             error
         );
 
@@ -2095,7 +2464,106 @@ async function loadRecurrenceChart(user) {
 
 
 /* ==========================================================
-   PROTEÇÃO CONTRA SAÍDA DA PÁGINA COM MENU ABERTO
+   REDIMENSIONAR GRÁFICO
+   ========================================================== */
+
+function resizeRecurrenceChart() {
+
+    if (
+        !recurrenceChart ||
+        !currentUser ||
+        !isHomePage
+    ) {
+
+        return;
+    }
+
+
+    /*
+     * Primeiro tenta apenas atualizar
+     * o tamanho do Chart.js.
+     */
+
+    recurrenceChart.resize();
+
+
+    /*
+     * Depois recalcula toda a configuração
+     * quando a largura mudou bastante.
+     */
+
+    clearTimeout(
+        resizeTimeout
+    );
+
+
+    resizeTimeout =
+        setTimeout(
+            async function () {
+
+                if (
+                    currentUser &&
+                    isHomePage
+                ) {
+
+                    await loadRecurrenceChart(
+                        currentUser
+                    );
+                }
+
+            },
+            300
+        );
+}
+
+
+/* ==========================================================
+   RESIZE DA JANELA
+   ========================================================== */
+
+window.addEventListener(
+    "resize",
+    resizeRecurrenceChart
+);
+
+
+/* ==========================================================
+   ORIENTAÇÃO DO CELULAR
+   ========================================================== */
+
+window.addEventListener(
+    "orientationchange",
+    function () {
+
+        clearTimeout(
+            resizeTimeout
+        );
+
+
+        resizeTimeout =
+            setTimeout(
+                function () {
+
+                    if (
+                        recurrenceChart &&
+                        currentUser &&
+                        isHomePage
+                    ) {
+
+                        loadRecurrenceChart(
+                            currentUser
+                        );
+                    }
+
+                },
+                350
+            );
+    }
+);
+
+
+/* ==========================================================
+   FECHAR MENU AO REDIMENSIONAR
    ========================================================== */
 
 window.addEventListener(
@@ -2113,9 +2581,33 @@ window.addEventListener(
 
 
 /* ==========================================================
+   LIMPEZA ANTES DE SAIR
+   ========================================================== */
+
+window.addEventListener(
+    "beforeunload",
+    function () {
+
+        if (recurrenceChart) {
+
+            recurrenceChart.destroy();
+
+            recurrenceChart =
+                null;
+        }
+    }
+);
+
+
+/* ==========================================================
    INICIALIZAÇÃO
    ========================================================== */
 
 console.log(
     "PostoCheck: app.js carregado."
+);
+
+console.log(
+    "PostoCheck: página:",
+    currentPage
 );
