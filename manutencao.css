@@ -1,0 +1,383 @@
+/* =====================================================
+   POSTOCHECK
+   TELA DE MANUTENÇÃO
+===================================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+}
+
+
+body {
+    min-height: 100vh;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    background: #f5c400;
+
+    color: #000000;
+}
+
+
+/* =====================================================
+   PÁGINA
+===================================================== */
+
+.maintenance-page {
+    min-height: 100vh;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 30px 20px;
+}
+
+
+/* =====================================================
+   CARD
+===================================================== */
+
+.maintenance-card {
+    width: 100%;
+
+    max-width: 720px;
+
+    background: #ffffff;
+
+    border: 3px solid #000000;
+
+    box-shadow:
+        12px 12px 0 #000000;
+
+    padding: 50px 45px;
+
+    text-align: center;
+}
+
+
+/* =====================================================
+   LOGO
+===================================================== */
+
+.maintenance-logo-wrapper {
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    margin-bottom: 12px;
+}
+
+
+.maintenance-logo {
+    width: 82px;
+
+    height: 82px;
+
+    object-fit: contain;
+}
+
+
+.maintenance-label {
+    display: block;
+
+    font-size: 14px;
+
+    font-weight: 900;
+
+    letter-spacing: 4px;
+
+    margin-bottom: 28px;
+}
+
+
+/* =====================================================
+   ÍCONE
+===================================================== */
+
+.maintenance-icon {
+    width: 90px;
+
+    height: 90px;
+
+    margin: 0 auto 28px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #f5c400;
+
+    border: 3px solid #000000;
+
+    border-radius: 50%;
+
+    font-size: 42px;
+
+    animation:
+        maintenanceRotate 3s
+        linear infinite;
+}
+
+
+@keyframes maintenanceRotate {
+
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* =====================================================
+   TÍTULO
+===================================================== */
+
+.maintenance-card h1 {
+    font-size: 34px;
+
+    font-weight: 900;
+
+    line-height: 1.15;
+
+    margin-bottom: 20px;
+}
+
+
+/* =====================================================
+   MENSAGEM
+===================================================== */
+
+.maintenance-message {
+    max-width: 580px;
+
+    margin: 0 auto;
+
+    font-size: 18px;
+
+    line-height: 1.7;
+
+    color: #333333;
+
+    white-space: pre-line;
+}
+
+
+/* =====================================================
+   LOADING
+===================================================== */
+
+.maintenance-loading {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 10px;
+
+    margin-top: 28px;
+
+    font-size: 14px;
+
+    font-weight: 700;
+}
+
+
+.maintenance-spinner {
+    width: 18px;
+
+    height: 18px;
+
+    border: 3px solid #dddddd;
+
+    border-top-color: #000000;
+
+    border-radius: 50%;
+
+    animation:
+        maintenanceSpin 0.8s
+        linear infinite;
+}
+
+
+@keyframes maintenanceSpin {
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* =====================================================
+   ERRO
+===================================================== */
+
+.maintenance-error {
+    margin-top: 25px;
+
+    padding: 14px;
+
+    background: #ffe5e5;
+
+    border: 2px solid #d00000;
+
+    color: #a00000;
+
+    font-size: 14px;
+
+    font-weight: 700;
+}
+
+
+/* =====================================================
+   BOTÃO LOGOUT
+===================================================== */
+
+.maintenance-logout-button {
+    margin-top: 35px;
+
+    min-width: 180px;
+
+    padding: 14px 24px;
+
+    background: #000000;
+
+    color: #ffffff;
+
+    border: 2px solid #000000;
+
+    font-size: 14px;
+
+    font-weight: 900;
+
+    letter-spacing: 1px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+.maintenance-logout-button:hover {
+    background: #f5c400;
+
+    color: #000000;
+
+    transform: translateY(-2px);
+}
+
+
+.maintenance-logout-button:disabled {
+    opacity: 0.6;
+
+    cursor: not-allowed;
+
+    transform: none;
+}
+
+
+/* =====================================================
+   RESPONSIVIDADE
+===================================================== */
+
+@media (max-width: 600px) {
+
+    .maintenance-page {
+        padding: 20px 15px;
+    }
+
+
+    .maintenance-card {
+        padding: 38px 25px;
+
+        box-shadow:
+            8px 8px 0 #000000;
+    }
+
+
+    .maintenance-logo {
+        width: 70px;
+
+        height: 70px;
+    }
+
+
+    .maintenance-label {
+        font-size: 12px;
+
+        letter-spacing: 3px;
+
+        margin-bottom: 22px;
+    }
+
+
+    .maintenance-icon {
+        width: 76px;
+
+        height: 76px;
+
+        font-size: 34px;
+
+        margin-bottom: 22px;
+    }
+
+
+    .maintenance-card h1 {
+        font-size: 27px;
+    }
+
+
+    .maintenance-message {
+        font-size: 16px;
+
+        line-height: 1.6;
+    }
+}
+
+
+@media (max-width: 400px) {
+
+    .maintenance-card {
+        padding: 30px 18px;
+    }
+
+
+    .maintenance-card h1 {
+        font-size: 24px;
+    }
+
+
+    .maintenance-message {
+        font-size: 15px;
+    }
+
+
+    .maintenance-logout-button {
+        width: 100%;
+    }
+}

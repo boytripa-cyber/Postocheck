@@ -15,7 +15,17 @@
         content="Página inicial do PostoCheck"
     >
 
+    <meta
+        name="theme-color"
+        content="#000000"
+    >
+
     <title>PostoCheck - Início</title>
+
+
+    <!-- =================================================
+         CSS PRINCIPAL
+    ================================================== -->
 
     <link
         rel="stylesheet"
@@ -37,7 +47,9 @@
         <div class="header-content">
 
 
-            <!-- BOTÃO DO MENU -->
+            <!-- =================================================
+                 BOTÃO MENU
+            ================================================== -->
 
             <button
                 type="button"
@@ -45,13 +57,16 @@
                 class="menu-button"
                 aria-label="Abrir menu"
                 aria-expanded="false"
+                aria-controls="sideMenu"
                 style="display: none;"
             >
                 ☰
             </button>
 
 
-            <!-- BOTÃO LOGAR -->
+            <!-- =================================================
+                 BOTÃO LOGIN
+            ================================================== -->
 
             <a
                 href="login.html"
@@ -74,6 +89,7 @@
     <div
         id="menuOverlay"
         class="menu-overlay"
+        aria-hidden="true"
     ></div>
 
 
@@ -88,9 +104,12 @@
     >
 
 
-        <!-- CABEÇALHO DO MENU -->
+        <!-- =================================================
+             CABEÇALHO DO MENU
+        ================================================== -->
 
         <div class="side-menu-header">
+
 
             <div class="side-menu-title">
 
@@ -107,6 +126,8 @@
             </div>
 
 
+            <!-- BOTÃO FECHAR -->
+
             <button
                 type="button"
                 id="closeMenuButton"
@@ -116,24 +137,31 @@
                 ×
             </button>
 
+
         </div>
 
 
         <!-- =================================================
-             OPÇÕES DO MENU
+             NAVEGAÇÃO
         ================================================== -->
 
-        <nav class="side-menu-nav">
+        <nav
+            class="side-menu-nav"
+            aria-label="Menu principal"
+        >
 
 
-            <!-- AUDITORIAS DO POSTO -->
+            <!-- AUDITORIAS -->
 
             <a
                 href="auditorias.html"
                 class="side-menu-item"
             >
 
-                <span class="side-menu-icon">
+                <span
+                    class="side-menu-icon"
+                    aria-hidden="true"
+                >
                     ✓
                 </span>
 
@@ -148,17 +176,20 @@
 
 
         <!-- =================================================
-             USUÁRIO
+             RODAPÉ DO MENU
         ================================================== -->
 
         <div class="side-menu-footer">
 
+
+            <!-- USUÁRIO -->
 
             <div class="side-menu-user">
 
                 <span class="side-menu-user-label">
                     Usuário conectado
                 </span>
+
 
                 <span
                     id="sideMenuUserEmail"
@@ -169,6 +200,8 @@
 
             </div>
 
+
+            <!-- LOGOUT -->
 
             <button
                 type="button"
@@ -196,7 +229,10 @@
              ÁREA DE BOAS-VINDAS
         ================================================== -->
 
-        <section class="welcome">
+        <section
+            class="welcome"
+            aria-labelledby="welcomeTitle"
+        >
 
 
             <div class="welcome-content">
@@ -211,7 +247,7 @@
                 >
 
 
-                <!-- NOME -->
+                <!-- IDENTIFICAÇÃO -->
 
                 <span class="welcome-label">
                     POSTOCHECK
@@ -220,7 +256,7 @@
 
                 <!-- TÍTULO -->
 
-                <h1>
+                <h1 id="welcomeTitle">
                     Bem-vindo!
                 </h1>
 
@@ -240,21 +276,33 @@
 
 
         <!-- =================================================
-             CARD
+             CONTEÚDO DA HOME
         ================================================== -->
 
         <section class="home-content">
 
 
+            <!-- =================================================
+                 CARD PRINCIPAL
+            ================================================== -->
+
             <div class="home-card">
 
 
-                <span class="home-card-icon">
+                <!-- ÍCONE -->
+
+                <span
+                    class="home-card-icon"
+                    aria-hidden="true"
+                >
                     ✓
                 </span>
 
 
+                <!-- TEXTO -->
+
                 <div class="home-card-text">
+
 
                     <h2>
                         Sistema PostoCheck
@@ -266,10 +314,185 @@
                         todas as opções do sistema.
                     </p>
 
+
                 </div>
 
 
             </div>
+
+
+            <!-- =================================================
+                 GRÁFICO DE REINCIDÊNCIA
+
+                 Fica oculto inicialmente.
+
+                 O app.js:
+                 - verifica o usuário logado;
+                 - libera esta seção;
+                 - busca as auditorias;
+                 - calcula as reincidências;
+                 - monta o gráfico.
+            ================================================== -->
+
+            <section
+                id="recurrenceSection"
+                class="recurrence-section"
+                hidden
+                aria-labelledby="recurrenceTitle"
+            >
+
+
+                <!-- =================================================
+                     CABEÇALHO DO GRÁFICO
+                ================================================== -->
+
+                <div class="recurrence-header">
+
+
+                    <div class="recurrence-header-content">
+
+
+                        <!-- PEQUENO TÍTULO -->
+
+                        <span class="recurrence-kicker">
+                            ANÁLISE DAS AUDITORIAS
+                        </span>
+
+
+                        <!-- TÍTULO -->
+
+                        <h2 id="recurrenceTitle">
+                            Reincidência dos itens do checklist
+                        </h2>
+
+
+                        <!-- DESCRIÇÃO -->
+
+                        <p>
+                            Quantidade de auditorias em que cada
+                            item foi registrado como não conforme.
+                        </p>
+
+
+                    </div>
+
+
+                    <!-- =================================================
+                         CONTADOR
+                    ================================================== -->
+
+                    <div
+                        id="recurrenceAuditCount"
+                        class="recurrence-audit-count"
+                        aria-live="polite"
+                    >
+                        0 auditorias
+                    </div>
+
+
+                </div>
+
+
+                <!-- =================================================
+                     CARREGANDO
+                ================================================== -->
+
+                <div
+                    id="recurrenceLoading"
+                    class="recurrence-state"
+                >
+
+
+                    <span
+                        class="recurrence-spinner"
+                        aria-hidden="true"
+                    ></span>
+
+
+                    <span>
+                        Carregando dados das auditorias...
+                    </span>
+
+
+                </div>
+
+
+                <!-- =================================================
+                     ESTADO VAZIO
+                ================================================== -->
+
+                <div
+                    id="recurrenceEmpty"
+                    class="recurrence-state recurrence-empty"
+                    hidden
+                >
+
+
+                    <!-- ÍCONE -->
+
+                    <div
+                        class="recurrence-empty-icon"
+                        aria-hidden="true"
+                    >
+                        ✓
+                    </div>
+
+
+                    <!-- TÍTULO -->
+
+                    <h3>
+                        Ainda não há reincidências
+                    </h3>
+
+
+                    <!-- TEXTO -->
+
+                    <p>
+                        Quando existirem auditorias com itens
+                        não conformes, elas aparecerão neste gráfico.
+                    </p>
+
+
+                </div>
+
+
+                <!-- =================================================
+                     ÁREA DO GRÁFICO
+                ================================================== -->
+
+                <div
+                    id="recurrenceChartWrapper"
+                    class="recurrence-chart-wrapper"
+                    hidden
+                >
+
+
+                    <canvas
+                        id="recurrenceChart"
+                        class="recurrence-chart"
+                        aria-label="Gráfico de reincidência dos itens do checklist"
+                        role="img"
+                    ></canvas>
+
+
+                </div>
+
+
+                <!-- =================================================
+                     ERRO
+                ================================================== -->
+
+                <div
+                    id="recurrenceError"
+                    class="recurrence-error"
+                    hidden
+                    role="alert"
+                >
+                    Não foi possível carregar os dados das auditorias.
+                </div>
+
+
+            </section>
 
 
         </section>
@@ -292,7 +515,19 @@
 
 
     <!-- =================================================
-         JAVASCRIPT
+         CHART.JS
+
+         Biblioteca usada somente para desenhar
+         o gráfico de reincidência.
+    ================================================== -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"
+    ></script>
+
+
+    <!-- =================================================
+         JAVASCRIPT DO POSTOCHECK
     ================================================== -->
 
     <script
@@ -304,4 +539,3 @@
 </body>
 
 </html>
-

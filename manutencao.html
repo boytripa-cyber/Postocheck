@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="PostoCheck - Sistema em manutenção"
+    >
+
+    <title>PostoCheck - Manutenção</title>
+
+    <link
+        rel="stylesheet"
+        href="manutencao.css"
+    >
+</head>
+
+<body>
+
+    <main class="maintenance-page">
+
+        <section
+            class="maintenance-card"
+            aria-live="polite"
+        >
+
+            <div class="maintenance-logo-wrapper">
+
+                <img
+                    src="logo.png"
+                    alt="Logo PostoCheck"
+                    class="maintenance-logo"
+                >
+
+            </div>
+
+
+            <span class="maintenance-label">
+                POSTOCHECK
+            </span>
+
+
+            <div class="maintenance-icon">
+                ⚙
+            </div>
+
+
+            <h1 id="maintenanceTitle">
+                Sistema em manutenção
+            </h1>
+
+
+            <p
+                id="maintenanceMessage"
+                class="maintenance-message"
+            >
+                Carregando informações...
+            </p>
+
+
+            <div
+                id="maintenanceLoading"
+                class="maintenance-loading"
+            >
+                <span class="maintenance-spinner"></span>
+
+                <span>
+                    Carregando...
+                </span>
+            </div>
+
+
+            <div
+                id="maintenanceError"
+                class="maintenance-error"
+                hidden
+            >
+                Não foi possível carregar as informações
+                de manutenção.
+            </div>
+
+
+            <button
+                type="button"
+                id="maintenanceLogoutButton"
+                class="maintenance-logout-button"
+            >
+                DESLOGAR
+            </button>
+
+        </section>
+
+    </main>
+
+
+    <script
+        type="module"
+        src="./manutencao.js"
+    ></script>
+
+</body>
+
+</html>
