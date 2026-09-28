@@ -2416,6 +2416,156 @@ body {
 
         font-size: 15px;
     }
+    /* =========================================================
+   AUDITORIA SOMENTE LEITURA
+========================================================= */
+
+.audit-readonly {
+    position: relative;
+}
+
+
+/* Campos bloqueados */
+
+.audit-readonly input:not(#auditHistory),
+.audit-readonly textarea,
+.audit-readonly select {
+    cursor: not-allowed;
+}
+
+
+/* Checklist inteiro bloqueado */
+
+.audit-readonly .checklist {
+    position: relative;
+}
+
+
+/*
+ * Camada visual sobre o checklist.
+ * Não interfere no seletor de histórico.
+ */
+
+.audit-readonly .checklist-question,
+.audit-readonly .checklist-category {
+    opacity: 0.72;
+}
+
+
+.audit-readonly .answer-option,
+.audit-readonly .image-upload-label,
+.audit-readonly .remove-image-button {
+    cursor: not-allowed;
+}
+
+
+/* Botões principais bloqueados */
+
+.action-button.readonly-button {
+    opacity: 0.45;
+
+    cursor: not-allowed;
+
+    pointer-events: none;
+
+    box-shadow: none;
+
+    transform: none;
+}
+
+
+/* Campo de auditor somente leitura */
+
+.readonly-field {
+    background: #eeeeee !important;
+
+    color: #555555 !important;
+
+    border-color: #999999 !important;
+
+    cursor: not-allowed !important;
+}
+
+
+/* Aviso visual */
+
+.audit-status.readonly {
+    margin-bottom: 18px;
+
+    padding:
+        12px
+        15px;
+
+    border:
+        2px solid
+        #000000;
+
+    border-radius: 8px;
+
+    background: #eeeeee;
+
+    color: #555555;
+
+    font-size: 13px;
+
+    font-weight: 900;
+
+    text-align: center;
+
+    line-height: 1.4;
+}
+
+
+/* Auditoria de hoje */
+
+.audit-status.editable {
+    margin-bottom: 18px;
+
+    padding:
+        12px
+        15px;
+
+    border:
+        2px solid
+        #000000;
+
+    border-radius: 8px;
+
+    background: #f5c400;
+
+    color: #000000;
+
+    font-size: 13px;
+
+    font-weight: 900;
+
+    text-align: center;
+
+    line-height: 1.4;
+}
+
+
+/* Evita aparência de hover no checklist bloqueado */
+
+.audit-readonly .checklist-question:hover {
+    border-color: #d4d4d4;
+
+    box-shadow: none;
+}
+
+
+.audit-readonly .answer-option:hover {
+    background: #ffffff;
+
+    box-shadow: none;
+}
+
+
+.audit-readonly .image-upload-label:hover {
+    background: #ffffff;
+
+    box-shadow: none;
+}
 
 }
 
