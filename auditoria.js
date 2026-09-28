@@ -2,19 +2,21 @@
    POSTOCHECK
    auditoria.js
 
-   AJUSTES PRINCIPAIS:
+   VERSÃO AJUSTADA
 
-   1. Auditorias antigas ficam SOMENTE PARA CONSULTA.
-   2. Auditoria antiga não pode ser salva novamente.
-   3. Data de auditoria permanece bloqueada.
-   4. Auditor, respostas e observações ficam bloqueados
-      quando uma auditoria antiga é carregada.
-   5. Nova auditoria volta a liberar o formulário.
-   6. PDF possui carregamento automático da biblioteca jsPDF.
-   7. PDF pode ser gerado tanto de auditoria nova quanto antiga.
-   8. Histórico é carregado por usuário.
-   9. Respostas continuam armazenadas dentro de "respostas".
-   10. Imagens são comprimidas antes de serem armazenadas.
+   PRINCIPAIS CORREÇÕES:
+
+   1. Auditorias salvas ficam somente para consulta.
+   2. Auditorias históricas não podem ser alteradas.
+   3. Auditoria aberta no histórico pode gerar PDF.
+   4. O PDF usa diretamente os dados da auditoria carregada.
+   5. jsPDF é carregado automaticamente.
+   6. Existe fallback para outro CDN caso o primeiro falhe.
+   7. O botão GERAR PDF nunca fica preso em "GERANDO PDF".
+   8. PDF funciona para auditoria nova e histórica.
+   9. Respostas SIM/NÃO, texto, imagens e observações
+      são incluídos no PDF.
+   10. Compatível com navegador de smartphone.
 ========================================================= */
 
 
@@ -58,8 +60,11 @@ const app =
         ? getApp()
         : initializeApp(firebaseConfig);
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+const auth =
+    getAuth(app);
+
+const db =
+    getFirestore(app);
 
 
 /* =========================================================
@@ -156,19 +161,20 @@ let pdfLibraryPromise = null;
 
 
 /*
- * Indica se estamos visualizando uma auditoria já salva.
- *
- * false = nova auditoria / formulário liberado
- * true  = auditoria histórica / somente consulta
+ * false = nova auditoria
+ * true  = auditoria já salva / somente consulta
  */
 let isHistoricalAudit = false;
 
 
 /* =========================================================
-   MENSAGEM
+   MENSAGENS
 ========================================================= */
 
-function showMessage(message, type = "info") {
+function showMessage(
+    message,
+    type = "info"
+) {
 
     if (!auditMessage) {
         return;
@@ -298,34 +304,6 @@ function dateBRToISO(value) {
 
 
 /* =========================================================
-   MÁSCARA DE DATA
-========================================================= */
-
-function formatDateInput(value) {
-
-    const numbers =
-        String(value || "")
-            .replace(/\D/g, "")
-            .slice(0, 8);
-
-    if (numbers.length <= 2) {
-        return numbers;
-    }
-
-    if (numbers.length <= 4) {
-
-        return (
-            `${numbers.slice(0, 2)}/${numbers.slice(2)}`
-        );
-    }
-
-    return (
-        `${numbers.slice(0, 2)}/${numbers.slice(2, 4)}/${numbers.slice(4)}`
-    );
-}
-
-
-/* =========================================================
    FORMATAR DATA
 ========================================================= */
 
@@ -338,10 +316,10 @@ function formatDate(dateString) {
     const text =
         String(dateString).trim();
 
-    const formatted =
-        dateISOToBR(text);
-
-    return formatted || text;
+    return (
+        dateISOToBR(text) ||
+        text
+    );
 }
 
 
@@ -375,9 +353,10 @@ function escapeSelector(value) {
 
     if (
         window.CSS &&
-        typeof CSS.escape === "function"
+        typeof window.CSS.escape === "function"
     ) {
-        return CSS.escape(
+
+        return window.CSS.escape(
             String(value)
         );
     }
@@ -391,7 +370,7 @@ function escapeSelector(value) {
 
 
 /* =========================================================
-   NORMALIZAR TIPO DE RESPOSTA
+   NORMALIZAR TIPO
 ========================================================= */
 
 function normalizeAnswerType(type) {
@@ -468,73 +447,89 @@ function setAuditReadOnly(readOnly) {
     isHistoricalAudit =
         Boolean(readOnly);
 
-    /*
-     * Data permanece sempre bloqueada.
-     */
-    if (auditDateInput) {
-        auditDateInput.readOnly = true;
-        auditDateInput.disabled = false;
-    }
 
     /*
-     * Calendário nunca deve alterar auditoria antiga.
+     * DATA
+     */
+    if (auditDateInput) {
+
+        auditDateInput.readOnly =
+            true;
+
+        auditDateInput.disabled =
+            false;
+    }
+
+
+    /*
+     * CALENDÁRIO
      */
     if (calendarButton) {
+
         calendarButton.disabled =
             isHistoricalAudit;
     }
 
     if (hiddenDatePicker) {
+
         hiddenDatePicker.disabled =
             isHistoricalAudit;
     }
 
+
     /*
-     * Auditor.
+     * AUDITOR
      */
     if (auditorNameInput) {
+
         auditorNameInput.disabled =
             isHistoricalAudit;
     }
 
+
     /*
-     * Observações.
+     * OBSERVAÇÕES
      */
     if (observationsInput) {
+
         observationsInput.disabled =
             isHistoricalAudit;
     }
 
+
     /*
-     * Salvar.
+     * BOTÃO SALVAR
      */
     if (saveAuditButton) {
 
         saveAuditButton.disabled =
             isHistoricalAudit;
 
-        if (isHistoricalAudit) {
-
-            saveAuditButton.textContent =
-                "AUDITORIA JÁ SALVA";
-
-        } else {
-
-            saveAuditButton.textContent =
-                "SALVAR";
-        }
+        saveAuditButton.textContent =
+            isHistoricalAudit
+                ? "AUDITORIA JÁ SALVA"
+                : "SALVAR";
     }
 
+
     /*
-     * PDF continua liberado.
+     * BOTÃO PDF
+     *
+     * IMPORTANTE:
+     * PDF permanece sempre liberado.
      */
     if (generatePdfButton) {
-        generatePdfButton.disabled = false;
+
+        generatePdfButton.disabled =
+            false;
+
+        generatePdfButton.textContent =
+            "GERAR PDF";
     }
 
+
     /*
-     * Bloqueia/desbloqueia todos os campos
-     * criados dentro do checklist.
+     * CHECKLIST
      */
     if (checklistElement) {
 
@@ -551,15 +546,12 @@ function setAuditReadOnly(readOnly) {
             }
         );
 
-        /*
-         * Deixa a aparência visual da consulta
-         * claramente diferente.
-         */
         checklistElement.classList.toggle(
             "checklist-readonly",
             isHistoricalAudit
         );
     }
+
 
     updateAuditStatus();
 }
@@ -578,23 +570,27 @@ function setupDatePicker() {
         return;
     }
 
-    auditDateInput.value =
-        dateISOToBR(
-            getCurrentDateISO()
-        );
+    if (!auditDateInput.value) {
 
-    auditDateInput.readOnly =
-        true;
+        auditDateInput.value =
+            dateISOToBR(
+                getCurrentDateISO()
+            );
+    }
 
     hiddenDatePicker.type =
         "date";
 
-    hiddenDatePicker.value =
-        getCurrentDateISO();
+    if (!hiddenDatePicker.value) {
 
-    /*
-     * Bloqueia edição manual.
-     */
+        hiddenDatePicker.value =
+            getCurrentDateISO();
+    }
+
+    auditDateInput.readOnly =
+        true;
+
+
     auditDateInput.addEventListener(
         "keydown",
         (event) => {
@@ -602,6 +598,7 @@ function setupDatePicker() {
             event.preventDefault();
         }
     );
+
 
     auditDateInput.addEventListener(
         "paste",
@@ -611,19 +608,6 @@ function setupDatePicker() {
         }
     );
 
-    auditDateInput.addEventListener(
-        "input",
-        () => {
-
-            /*
-             * Não permite alteração manual.
-             */
-            auditDateInput.value =
-                dateISOToBR(
-                    getCurrentDateISO()
-                );
-        }
-    );
 
     if (calendarButton) {
 
@@ -675,6 +659,7 @@ function setupDatePicker() {
         );
     }
 
+
     hiddenDatePicker.addEventListener(
         "change",
         () => {
@@ -683,16 +668,13 @@ function setupDatePicker() {
                 return;
             }
 
-            const selectedDate =
-                hiddenDatePicker.value;
-
-            if (!selectedDate) {
+            if (!hiddenDatePicker.value) {
                 return;
             }
 
             auditDateInput.value =
                 dateISOToBR(
-                    selectedDate
+                    hiddenDatePicker.value
                 );
         }
     );
@@ -757,12 +739,6 @@ async function loadCompanyProfile() {
             "Erro ao carregar empresa:",
             error
         );
-
-        companyData = {
-            nomeEmpresa: "",
-            cnpj: "",
-            endereco: ""
-        };
 
         updateCompanyDisplay();
 
@@ -851,11 +827,11 @@ async function loadAuditQuestions() {
                     questionsQuery
                 );
 
-        } catch (orderError) {
+        } catch (error) {
 
             console.warn(
                 "Falha no orderBy das perguntas:",
-                orderError
+                error
             );
 
             snapshot =
@@ -905,6 +881,7 @@ async function loadAuditQuestions() {
                 a.ordem - b.ordem
         );
 
+
         if (
             auditQuestions.length === 0
         ) {
@@ -920,14 +897,11 @@ async function loadAuditQuestions() {
             return;
         }
 
+
         renderChecklist();
 
         updateScore();
 
-        /*
-         * Se estiver carregando auditoria histórica,
-         * mantém o checklist bloqueado.
-         */
         setAuditReadOnly(
             isHistoricalAudit
         );
@@ -994,6 +968,7 @@ function renderChecklist() {
                     question.categoria;
             }
 
+
             const questionCard =
                 document.createElement(
                     "div"
@@ -1005,7 +980,9 @@ function renderChecklist() {
             questionCard.dataset.questionId =
                 question.id;
 
+
             let answerHtml = "";
+
 
             /*
              * SIM / NÃO
@@ -1058,6 +1035,7 @@ function renderChecklist() {
                 `;
             }
 
+
             /*
              * TEXTO
              */
@@ -1080,6 +1058,7 @@ function renderChecklist() {
                     </div>
                 `;
             }
+
 
             /*
              * IMAGEM
@@ -1118,6 +1097,7 @@ function renderChecklist() {
                 `;
             }
 
+
             questionCard.innerHTML = `
 
                 <div class="question-header">
@@ -1139,19 +1119,17 @@ function renderChecklist() {
                 ${answerHtml}
             `;
 
+
             checklistElement.appendChild(
                 questionCard
             );
         }
     );
 
+
     addChecklistEvents();
 
-    /*
-     * IMPORTANTE:
-     * se for auditoria antiga, bloqueia depois
-     * de renderizar novamente.
-     */
+
     setAuditReadOnly(
         isHistoricalAudit
     );
@@ -1159,7 +1137,7 @@ function renderChecklist() {
 
 
 /* =========================================================
-   EVENTOS DO CHECKLIST
+   EVENTOS CHECKLIST
 ========================================================= */
 
 function addChecklistEvents() {
@@ -1169,6 +1147,7 @@ function addChecklistEvents() {
             ".answer-checkbox"
         );
 
+
     checkboxes.forEach(
         (checkbox) => {
 
@@ -1177,10 +1156,6 @@ function addChecklistEvents() {
                 () => {
 
                     if (isHistoricalAudit) {
-
-                        checkbox.checked =
-                            !checkbox.checked;
-
                         return;
                     }
 
@@ -1189,6 +1164,7 @@ function addChecklistEvents() {
 
                     const answer =
                         checkbox.dataset.answer;
+
 
                     if (checkbox.checked) {
 
@@ -1224,6 +1200,7 @@ function addChecklistEvents() {
             ".question-text-input"
         );
 
+
     textInputs.forEach(
         (input) => {
 
@@ -1248,6 +1225,7 @@ function addChecklistEvents() {
             ".question-image-input"
         );
 
+
     imageInputs.forEach(
         (input) => {
 
@@ -1261,7 +1239,7 @@ function addChecklistEvents() {
 
 
 /* =========================================================
-   UPLOAD DE IMAGEM
+   UPLOAD IMAGEM
 ========================================================= */
 
 async function handleImageUpload(event) {
@@ -1269,11 +1247,6 @@ async function handleImageUpload(event) {
     if (isHistoricalAudit) {
 
         event.target.value = "";
-
-        showMessage(
-            "Esta auditoria está somente para consulta.",
-            "info"
-        );
 
         return;
     }
@@ -1291,6 +1264,7 @@ async function handleImageUpload(event) {
     const questionId =
         input.dataset.questionId;
 
+
     if (
         !file.type ||
         !file.type.startsWith("image/")
@@ -1306,6 +1280,7 @@ async function handleImageUpload(event) {
         return;
     }
 
+
     try {
 
         showMessage(
@@ -1319,10 +1294,12 @@ async function handleImageUpload(event) {
         input.dataset.base64 =
             base64;
 
+
         const preview =
             document.querySelector(
                 `[data-preview-id="${escapeSelector(questionId)}"]`
             );
+
 
         if (preview) {
 
@@ -1331,7 +1308,7 @@ async function handleImageUpload(event) {
                 <div class="image-preview-item">
 
                     <img
-                        src="${base64}"
+                        src="${escapeHtml(base64)}"
                         alt="Imagem da auditoria"
                     >
 
@@ -1345,10 +1322,12 @@ async function handleImageUpload(event) {
                 </div>
             `;
 
+
             const removeButton =
                 preview.querySelector(
                     ".remove-image-button"
                 );
+
 
             if (removeButton) {
 
@@ -1369,6 +1348,7 @@ async function handleImageUpload(event) {
                 );
             }
         }
+
 
         showMessage(
             "Imagem adicionada.",
@@ -1406,11 +1386,13 @@ function resizeImage(file) {
             const reader =
                 new FileReader();
 
+
             reader.onload =
                 (event) => {
 
                     const image =
                         new Image();
+
 
                     image.onload =
                         () => {
@@ -1427,6 +1409,7 @@ function resizeImage(file) {
                             let height =
                                 image.height;
 
+
                             if (
                                 width > maxWidth
                             ) {
@@ -1441,6 +1424,7 @@ function resizeImage(file) {
                                 width =
                                     maxWidth;
                             }
+
 
                             if (
                                 height > maxHeight
@@ -1457,25 +1441,25 @@ function resizeImage(file) {
                                     maxHeight;
                             }
 
+
                             const canvas =
                                 document.createElement(
                                     "canvas"
                                 );
 
+
                             canvas.width =
-                                Math.round(
-                                    width
-                                );
+                                Math.round(width);
 
                             canvas.height =
-                                Math.round(
-                                    height
-                                );
+                                Math.round(height);
+
 
                             const context =
                                 canvas.getContext(
                                     "2d"
                                 );
+
 
                             if (!context) {
 
@@ -1488,6 +1472,7 @@ function resizeImage(file) {
                                 return;
                             }
 
+
                             context.drawImage(
                                 image,
                                 0,
@@ -1496,16 +1481,19 @@ function resizeImage(file) {
                                 canvas.height
                             );
 
+
                             const base64 =
                                 canvas.toDataURL(
                                     "image/jpeg",
                                     0.72
                                 );
 
+
                             resolve(
                                 base64
                             );
                         };
+
 
                     image.onerror =
                         () => {
@@ -1517,9 +1505,11 @@ function resizeImage(file) {
                             );
                         };
 
+
                     image.src =
                         event.target.result;
                 };
+
 
             reader.onerror =
                 () => {
@@ -1531,6 +1521,7 @@ function resizeImage(file) {
                     );
                 };
 
+
             reader.readAsDataURL(file);
         }
     );
@@ -1538,12 +1529,13 @@ function resizeImage(file) {
 
 
 /* =========================================================
-   PEGAR RESPOSTAS
+   PEGAR RESPOSTAS DA TELA
 ========================================================= */
 
 function getCurrentAnswers() {
 
     const answers = {};
+
 
     auditQuestions.forEach(
         (question) => {
@@ -1561,6 +1553,7 @@ function getCurrentAnswers() {
                         `.answer-checkbox[data-question-id="${escapeSelector(question.id)}"]:checked`
                     );
 
+
                 answers[question.id] = {
 
                     tipoResposta:
@@ -1574,6 +1567,7 @@ function getCurrentAnswers() {
                     imagemBase64:
                         ""
                 };
+
 
                 return;
             }
@@ -1592,6 +1586,7 @@ function getCurrentAnswers() {
                         `.question-text-input[data-question-id="${escapeSelector(question.id)}"]`
                     );
 
+
                 answers[question.id] = {
 
                     tipoResposta:
@@ -1605,6 +1600,7 @@ function getCurrentAnswers() {
                     imagemBase64:
                         ""
                 };
+
 
                 return;
             }
@@ -1623,6 +1619,7 @@ function getCurrentAnswers() {
                         `.question-image-input[data-question-id="${escapeSelector(question.id)}"]`
                     );
 
+
                 answers[question.id] = {
 
                     tipoResposta:
@@ -1638,6 +1635,7 @@ function getCurrentAnswers() {
         }
     );
 
+
     return answers;
 }
 
@@ -1646,10 +1644,7 @@ function getCurrentAnswers() {
    CALCULAR SCORE
 ========================================================= */
 
-function calculateScore() {
-
-    const answers =
-        getCurrentAnswers();
+function calculateScoreFromAnswers(answers = {}) {
 
     const scoreQuestions =
         auditQuestions.filter(
@@ -1658,6 +1653,7 @@ function calculateScore() {
                 "sim_nao"
         );
 
+
     const total =
         scoreQuestions.length;
 
@@ -1665,15 +1661,17 @@ function calculateScore() {
 
     let no = 0;
 
+
     scoreQuestions.forEach(
         (question) => {
 
             const data =
-                answers[question.id];
+                answers?.[question.id];
 
             if (!data) {
                 return;
             }
+
 
             if (
                 data.resposta ===
@@ -1692,12 +1690,14 @@ function calculateScore() {
         }
     );
 
+
     const score =
         total > 0
             ? Math.round(
                 (yes / total) * 100
             )
             : 0;
+
 
     return {
         score,
@@ -1709,13 +1709,89 @@ function calculateScore() {
 
 
 /* =========================================================
+   CALCULAR SCORE ATUAL
+========================================================= */
+
+function calculateScore() {
+
+    return calculateScoreFromAnswers(
+        getCurrentAnswers()
+    );
+}
+
+
+/* =========================================================
    ATUALIZAR SCORE
 ========================================================= */
 
 function updateScore() {
 
+    /*
+     * Se estamos visualizando uma auditoria salva,
+     * usamos o resultado salvo no Firebase.
+     */
+    if (
+        isHistoricalAudit &&
+        currentAudit
+    ) {
+
+        const score =
+            Number(
+                currentAudit.score ?? 0
+            );
+
+        const yes =
+            Number(
+                currentAudit.yesCount ?? 0
+            );
+
+        const no =
+            Number(
+                currentAudit.noCount ?? 0
+            );
+
+        const total =
+            Number(
+                currentAudit.totalCount ?? 0
+            );
+
+
+        if (scoreValue) {
+            scoreValue.textContent =
+                `${score}%`;
+        }
+
+        if (yesCountElement) {
+            yesCountElement.textContent =
+                yes;
+        }
+
+        if (noCountElement) {
+            noCountElement.textContent =
+                no;
+        }
+
+        if (totalCountElement) {
+            totalCountElement.textContent =
+                total;
+        }
+
+        if (scoreCircle) {
+
+            scoreCircle.style.background =
+                `conic-gradient(
+                    #f5c400 0% ${score}%,
+                    #e5e5e5 ${score}% 100%
+                )`;
+        }
+
+        return;
+    }
+
+
     const result =
         calculateScore();
+
 
     if (scoreValue) {
 
@@ -1723,11 +1799,13 @@ function updateScore() {
             `${result.score}%`;
     }
 
+
     if (yesCountElement) {
 
         yesCountElement.textContent =
             result.yes;
     }
+
 
     if (noCountElement) {
 
@@ -1735,11 +1813,13 @@ function updateScore() {
             result.no;
     }
 
+
     if (totalCountElement) {
 
         totalCountElement.textContent =
             result.total;
     }
+
 
     if (scoreCircle) {
 
@@ -1762,6 +1842,7 @@ function clearAuditForm() {
 
     isHistoricalAudit = false;
 
+
     if (auditDateInput) {
 
         auditDateInput.value =
@@ -1770,11 +1851,13 @@ function clearAuditForm() {
             );
     }
 
+
     if (hiddenDatePicker) {
 
         hiddenDatePicker.value =
             getCurrentDateISO();
     }
+
 
     if (auditorNameInput) {
 
@@ -1785,6 +1868,7 @@ function clearAuditForm() {
             false;
     }
 
+
     if (observationsInput) {
 
         observationsInput.value =
@@ -1794,14 +1878,13 @@ function clearAuditForm() {
             false;
     }
 
-    /*
-     * Renderiza perguntas limpas.
-     */
+
     renderChecklist();
 
     updateScore();
 
     setAuditReadOnly(false);
+
 
     if (auditMessage) {
 
@@ -1811,8 +1894,6 @@ function clearAuditForm() {
         auditMessage.className =
             "audit-message";
     }
-
-    updateAuditStatus();
 }
 
 
@@ -1822,9 +1903,6 @@ function clearAuditForm() {
 
 function validateAudit() {
 
-    /*
-     * Auditoria histórica não pode ser salva.
-     */
     if (isHistoricalAudit) {
 
         showMessage(
@@ -1834,6 +1912,7 @@ function validateAudit() {
 
         return false;
     }
+
 
     if (!auditDateInput?.value) {
 
@@ -1845,10 +1924,12 @@ function validateAudit() {
         return false;
     }
 
+
     const isoDate =
         dateBRToISO(
             auditDateInput.value
         );
+
 
     if (!isoDate) {
 
@@ -1859,6 +1940,7 @@ function validateAudit() {
 
         return false;
     }
+
 
     if (
         !auditorNameInput?.value.trim()
@@ -1874,6 +1956,7 @@ function validateAudit() {
         return false;
     }
 
+
     if (
         auditQuestions.length === 0
     ) {
@@ -1886,12 +1969,14 @@ function validateAudit() {
         return false;
     }
 
+
     const scoreQuestions =
         auditQuestions.filter(
             (question) =>
                 question.tipoResposta ===
                 "sim_nao"
         );
+
 
     if (
         scoreQuestions.length === 0
@@ -1904,6 +1989,7 @@ function validateAudit() {
 
         return false;
     }
+
 
     return true;
 }
@@ -1925,9 +2011,11 @@ async function saveAudit() {
         return;
     }
 
+
     if (!validateAudit()) {
         return;
     }
+
 
     if (!currentUser) {
 
@@ -1938,6 +2026,7 @@ async function saveAudit() {
 
         return;
     }
+
 
     try {
 
@@ -1950,16 +2039,20 @@ async function saveAudit() {
                 "SALVANDO...";
         }
 
+
         const answers =
             getCurrentAnswers();
 
+
         const result =
             calculateScore();
+
 
         const isoDate =
             dateBRToISO(
                 auditDateInput.value
             );
+
 
         const auditsReference =
             collection(
@@ -1968,6 +2061,7 @@ async function saveAudit() {
                 currentUser.uid,
                 "auditorias"
             );
+
 
         const auditData = {
 
@@ -2014,11 +2108,13 @@ async function saveAudit() {
                 serverTimestamp()
         };
 
+
         const auditDocument =
             await addDoc(
                 auditsReference,
                 auditData
             );
+
 
         currentAudit = {
 
@@ -2028,27 +2124,22 @@ async function saveAudit() {
             ...auditData
         };
 
-        /*
-         * Depois de salvar, a auditoria passa
-         * imediatamente para modo consulta.
-         */
-        isHistoricalAudit = true;
 
+        /*
+         * Auditoria salva passa para consulta.
+         */
         setAuditReadOnly(true);
 
-        /*
-         * Atualiza histórico.
-         */
+
         await loadAuditHistory();
 
-        /*
-         * Seleciona automaticamente a auditoria recém criada.
-         */
+
         if (auditHistory) {
 
             auditHistory.value =
                 auditDocument.id;
         }
+
 
         showMessage(
             "Auditoria salva com sucesso. Ela agora está disponível somente para consulta.",
@@ -2069,16 +2160,15 @@ async function saveAudit() {
 
     } finally {
 
-        if (
-            saveAuditButton &&
-            !isHistoricalAudit
-        ) {
+        if (saveAuditButton) {
 
             saveAuditButton.disabled =
-                false;
+                isHistoricalAudit;
 
             saveAuditButton.textContent =
-                "SALVAR";
+                isHistoricalAudit
+                    ? "AUDITORIA JÁ SALVA"
+                    : "SALVAR";
         }
     }
 }
@@ -2094,6 +2184,7 @@ function getFirestoreErrorMessage(error) {
         return "Erro ao salvar a auditoria.";
     }
 
+
     if (
         error.code ===
         "permission-denied"
@@ -2103,6 +2194,7 @@ function getFirestoreErrorMessage(error) {
             "Permissão negada pelo Firebase. Verifique as regras do Firestore."
         );
     }
+
 
     if (
         error.code ===
@@ -2114,15 +2206,17 @@ function getFirestoreErrorMessage(error) {
         );
     }
 
+
     if (
         error.code ===
         "resource-exhausted"
     ) {
 
         return (
-            "O tamanho dos dados ultrapassou o limite do Firestore. A imagem em Base64 pode estar muito grande."
+            "O tamanho dos dados ultrapassou o limite do Firestore. A imagem pode estar muito grande."
         );
     }
+
 
     if (
         error.code ===
@@ -2130,9 +2224,10 @@ function getFirestoreErrorMessage(error) {
     ) {
 
         return (
-            "O Firebase solicitou um índice para esta consulta. Verifique o console do Firestore."
+            "O Firebase solicitou um índice para esta consulta."
         );
     }
+
 
     return (
         "Erro ao salvar a auditoria no Firebase."
@@ -2153,6 +2248,7 @@ async function loadAuditHistory() {
         return;
     }
 
+
     try {
 
         auditHistory.innerHTML = `
@@ -2160,6 +2256,7 @@ async function loadAuditHistory() {
                 Carregando auditorias...
             </option>
         `;
+
 
         const auditsReference =
             collection(
@@ -2169,7 +2266,9 @@ async function loadAuditHistory() {
                 "auditorias"
             );
 
+
         let snapshot;
+
 
         try {
 
@@ -2188,11 +2287,11 @@ async function loadAuditHistory() {
                     auditsQuery
                 );
 
-        } catch (orderError) {
+        } catch (error) {
 
             console.warn(
                 "Não foi possível ordenar pelo createdAt:",
-                orderError
+                error
             );
 
             snapshot =
@@ -2201,13 +2300,9 @@ async function loadAuditHistory() {
                 );
         }
 
-        auditHistory.innerHTML = `
-            <option value="">
-                Nova auditoria
-            </option>
-        `;
 
         const documents = [];
+
 
         snapshot.forEach(
             (documentSnapshot) => {
@@ -2218,9 +2313,7 @@ async function loadAuditHistory() {
             }
         );
 
-        /*
-         * Ordena pela data da auditoria.
-         */
+
         documents.sort(
             (a, b) => {
 
@@ -2237,40 +2330,58 @@ async function loadAuditHistory() {
             }
         );
 
-        documents.forEach(
-            (documentSnapshot) => {
 
-                const data =
-                    documentSnapshot.data();
+        auditHistory.innerHTML = `
+            <option value="">
+                Nova auditoria
+            </option>
+        `;
 
-                const date =
-                    formatDate(
-                        data.data
+
+        documents
+            .slice(0, 50)
+            .forEach(
+                (documentSnapshot) => {
+
+                    const data =
+                        documentSnapshot.data();
+
+
+                    const date =
+                        formatDate(
+                            data.data
+                        );
+
+
+                    const auditor =
+                        data.auditor ||
+                        "Sem responsável";
+
+
+                    const score =
+                        data.score ?? 0;
+
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+
+                    option.value =
+                        documentSnapshot.id;
+
+
+                    option.textContent =
+                        `${date} — ${auditor} — ${score}%`;
+
+
+                    auditHistory.appendChild(
+                        option
                     );
+                }
+            );
 
-                const auditor =
-                    data.auditor ||
-                    "Sem responsável";
-
-                const score =
-                    data.score ?? 0;
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-                option.value =
-                    documentSnapshot.id;
-
-                option.textContent =
-                    `${date} — ${auditor} — ${score}%`;
-
-                auditHistory.appendChild(
-                    option
-                );
-            }
-        );
 
         if (
             documents.length === 0
@@ -2324,12 +2435,20 @@ async function loadAuditById(auditId) {
         return;
     }
 
+
     try {
+
+        /*
+         * Bloqueia imediatamente enquanto carrega.
+         */
+        setAuditReadOnly(true);
+
 
         showMessage(
             "Carregando auditoria...",
             "info"
         );
+
 
         const auditReference =
             doc(
@@ -2340,10 +2459,12 @@ async function loadAuditById(auditId) {
                 auditId
             );
 
+
         const snapshot =
             await getDoc(
                 auditReference
             );
+
 
         if (!snapshot.exists()) {
 
@@ -2352,14 +2473,18 @@ async function loadAuditById(auditId) {
                 "error"
             );
 
-            clearAuditForm();
-
             return;
         }
+
 
         const data =
             snapshot.data();
 
+
+        /*
+         * ESTA É A AUDITORIA REAL QUE SERÁ USADA
+         * NA GERAÇÃO DO PDF.
+         */
         currentAudit = {
 
             id:
@@ -2368,12 +2493,10 @@ async function loadAuditById(auditId) {
             ...data
         };
 
-        /*
-         * IMPORTANTE:
-         * imediatamente coloca em modo histórico.
-         */
+
         isHistoricalAudit =
             true;
+
 
         /*
          * DATA
@@ -2386,11 +2509,13 @@ async function loadAuditById(auditId) {
                 );
         }
 
+
         if (hiddenDatePicker) {
 
             hiddenDatePicker.value =
                 data.data || "";
         }
+
 
         /*
          * AUDITOR
@@ -2401,6 +2526,7 @@ async function loadAuditById(auditId) {
                 data.auditor || "";
         }
 
+
         /*
          * OBSERVAÇÕES
          */
@@ -2410,27 +2536,32 @@ async function loadAuditById(auditId) {
                 data.observacoes || "";
         }
 
+
         /*
-         * Renderiza checklist.
+         * CHECKLIST
          */
         renderChecklist();
 
+
         /*
-         * Restaura respostas.
+         * RESPOSTAS
          */
         restoreAnswers(
             data.respostas || {}
         );
 
+
         /*
-         * Atualiza score.
+         * SCORE
          */
         updateScore();
 
+
         /*
-         * Bloqueia tudo.
+         * BLOQUEIA NOVAMENTE
          */
         setAuditReadOnly(true);
+
 
         showMessage(
             "Auditoria carregada somente para consulta.",
@@ -2462,6 +2593,7 @@ function restoreAnswers(answers) {
         return;
     }
 
+
     Object.entries(answers)
         .forEach(
             ([questionId, data]) => {
@@ -2470,6 +2602,7 @@ function restoreAnswers(answers) {
                     return;
                 }
 
+
                 const question =
                     auditQuestions.find(
                         (item) =>
@@ -2477,9 +2610,11 @@ function restoreAnswers(answers) {
                             questionId
                     );
 
+
                 if (!question) {
                     return;
                 }
+
 
                 /*
                  * SIM / NÃO
@@ -2492,6 +2627,7 @@ function restoreAnswers(answers) {
                     const answer =
                         data.resposta;
 
+
                     if (
                         answer === "SIM" ||
                         answer === "NAO"
@@ -2500,10 +2636,12 @@ function restoreAnswers(answers) {
                         const selector =
                             `.answer-checkbox[data-question-id="${escapeSelector(questionId)}"][data-answer="${answer}"]`;
 
+
                         const checkbox =
                             document.querySelector(
                                 selector
                             );
+
 
                         if (checkbox) {
 
@@ -2527,6 +2665,7 @@ function restoreAnswers(answers) {
                             `.question-text-input[data-question-id="${escapeSelector(questionId)}"]`
                         );
 
+
                     if (input) {
 
                         input.value =
@@ -2548,25 +2687,30 @@ function restoreAnswers(answers) {
                         data.resposta ||
                         "";
 
+
                     if (!image) {
                         return;
                     }
+
 
                     const input =
                         document.querySelector(
                             `.question-image-input[data-question-id="${escapeSelector(questionId)}"]`
                         );
 
+
                     const preview =
                         document.querySelector(
                             `[data-preview-id="${escapeSelector(questionId)}"]`
                         );
+
 
                     if (input) {
 
                         input.dataset.base64 =
                             image;
                     }
+
 
                     if (preview) {
 
@@ -2594,10 +2738,7 @@ function restoreAnswers(answers) {
             }
         );
 
-    /*
-     * Garante que os campos restaurados
-     * continuem bloqueados.
-     */
+
     setAuditReadOnly(
         isHistoricalAudit
     );
@@ -2605,129 +2746,22 @@ function restoreAnswers(answers) {
 
 
 /* =========================================================
-   CARREGAR JSPDF
+   AGUARDAR JSPDF
 ========================================================= */
 
-function loadJsPdfLibrary() {
+function waitForJsPdf(
+    timeout = 4000
+) {
 
-    /*
-     * Se já estiver carregado, resolve imediatamente.
-     */
-    if (
-        window.jspdf &&
-        typeof window.jspdf.jsPDF === "function"
-    ) {
+    return new Promise(
+        (resolve) => {
 
-        return Promise.resolve(
-            window.jspdf.jsPDF
-        );
-    }
-
-    /*
-     * Evita carregar a biblioteca duas vezes.
-     */
-    if (pdfLibraryPromise) {
-        return pdfLibraryPromise;
-    }
-
-    pdfLibraryPromise =
-        new Promise(
-            (resolve, reject) => {
-
-                /*
-                 * Procura primeiro um script já existente.
-                 */
-                const existingScript =
-                    document.querySelector(
-                        'script[src*="jspdf"]'
-                    );
-
-                if (existingScript) {
-
-                    existingScript.addEventListener(
-                        "load",
-                        () => {
-
-                            if (
-                                window.jspdf &&
-                                typeof window.jspdf.jsPDF ===
-                                "function"
-                            ) {
-
-                                resolve(
-                                    window.jspdf.jsPDF
-                                );
-
-                            } else {
-
-                                reject(
-                                    new Error(
-                                        "O script jsPDF carregou, mas window.jspdf não foi encontrado."
-                                    )
-                                );
-                            }
-                        },
-                        {
-                            once: true
-                        }
-                    );
-
-                    existingScript.addEventListener(
-                        "error",
-                        () => {
-
-                            reject(
-                                new Error(
-                                    "Não foi possível carregar a biblioteca jsPDF."
-                                )
-                            );
-                        },
-                        {
-                            once: true
-                        }
-                    );
-
-                    /*
-                     * Pode já ter carregado antes
-                     * dos listeners serem adicionados.
-                     */
-                    setTimeout(
-                        () => {
-
-                            if (
-                                window.jspdf &&
-                                typeof window.jspdf.jsPDF ===
-                                "function"
-                            ) {
-
-                                resolve(
-                                    window.jspdf.jsPDF
-                                );
-                            }
-                        },
-                        100
-                    );
-
-                    return;
-                }
+            const start =
+                Date.now();
 
 
-                /*
-                 * Se não existir script,
-                 * cria automaticamente.
-                 */
-                const script =
-                    document.createElement(
-                        "script"
-                    );
-
-                script.src =
-                    "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js";
-
-                script.async =
-                    true;
-
-                script.onload =
+            const timer =
+                setInterval(
                     () => {
 
                         if (
@@ -2736,37 +2770,77 @@ function loadJsPdfLibrary() {
                             "function"
                         ) {
 
+                            clearInterval(timer);
+
                             resolve(
                                 window.jspdf.jsPDF
                             );
 
-                        } else {
-
-                            reject(
-                                new Error(
-                                    "jsPDF carregou, mas a biblioteca não foi encontrada."
-                                )
-                            );
+                            return;
                         }
-                    };
 
-                script.onerror =
-                    () => {
 
-                        reject(
-                            new Error(
-                                "Falha ao carregar jsPDF."
-                            )
-                        );
-                    };
+                        if (
+                            Date.now() - start >=
+                            timeout
+                        ) {
 
-                document.head.appendChild(
-                    script
+                            clearInterval(timer);
+
+                            resolve(null);
+                        }
+
+                    },
+                    100
                 );
-            }
-        );
+        }
+    );
+}
 
-    return pdfLibraryPromise;
+
+/* =========================================================
+   CARREGAR SCRIPT EXTERNO
+========================================================= */
+
+function loadScript(url) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const script =
+                document.createElement(
+                    "script"
+                );
+
+
+            script.src =
+                url;
+
+            script.async =
+                true;
+
+            script.onload =
+                () => {
+
+                    resolve();
+                };
+
+            script.onerror =
+                () => {
+
+                    reject(
+                        new Error(
+                            `Não foi possível carregar: ${url}`
+                        )
+                    );
+                };
+
+
+            document.head.appendChild(
+                script
+            );
+        }
+    );
 }
 
 
@@ -2776,15 +2850,256 @@ function loadJsPdfLibrary() {
 
 async function ensureJsPdf() {
 
+    /*
+     * 1. Já carregado.
+     */
     if (
         window.jspdf &&
-        typeof window.jspdf.jsPDF === "function"
+        typeof window.jspdf.jsPDF ===
+        "function"
     ) {
 
         return window.jspdf.jsPDF;
     }
 
-    return await loadJsPdfLibrary();
+
+    /*
+     * Evita duas cargas simultâneas.
+     */
+    if (pdfLibraryPromise) {
+
+        return await pdfLibraryPromise;
+    }
+
+
+    pdfLibraryPromise =
+        (async () => {
+
+            /*
+             * 2. Dá alguns segundos para o script
+             * que já está no HTML terminar de carregar.
+             */
+            const existing =
+                await waitForJsPdf(4000);
+
+
+            if (existing) {
+                return existing;
+            }
+
+
+            /*
+             * 3. Primeiro CDN.
+             */
+            const cdnList = [
+
+                "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js",
+
+                "https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"
+            ];
+
+
+            for (
+                const url of cdnList
+            ) {
+
+                try {
+
+                    /*
+                     * Não adiciona novamente o mesmo
+                     * script do HTML.
+                     */
+                    const alreadyExists =
+                        Array.from(
+                            document.scripts
+                        ).some(
+                            (script) =>
+                                script.src ===
+                                url
+                        );
+
+
+                    if (!alreadyExists) {
+
+                        await loadScript(
+                            url
+                        );
+                    }
+
+
+                    const loaded =
+                        await waitForJsPdf(
+                            3000
+                        );
+
+
+                    if (loaded) {
+
+                        return loaded;
+                    }
+
+                } catch (error) {
+
+                    console.warn(
+                        "Falha ao carregar jsPDF:",
+                        url,
+                        error
+                    );
+                }
+            }
+
+
+            throw new Error(
+                "Não foi possível carregar a biblioteca jsPDF."
+            );
+
+        })();
+
+
+    try {
+
+        return await pdfLibraryPromise;
+
+    } finally {
+
+        pdfLibraryPromise =
+            null;
+    }
+}
+
+
+/* =========================================================
+   OBTER DADOS PARA PDF
+========================================================= */
+
+function getAuditDataForPdf() {
+
+    /*
+     * =====================================================
+     * AUDITORIA HISTÓRICA
+     *
+     * Aqui usamos diretamente o objeto carregado
+     * do Firebase.
+     * =====================================================
+     */
+
+    if (
+        isHistoricalAudit &&
+        currentAudit
+    ) {
+
+        return {
+
+            data:
+                currentAudit.data || "",
+
+            auditor:
+                currentAudit.auditor || "",
+
+            score:
+                Number(
+                    currentAudit.score ?? 0
+                ),
+
+            yesCount:
+                Number(
+                    currentAudit.yesCount ?? 0
+                ),
+
+            noCount:
+                Number(
+                    currentAudit.noCount ?? 0
+                ),
+
+            totalCount:
+                Number(
+                    currentAudit.totalCount ?? 0
+                ),
+
+            observacoes:
+                currentAudit.observacoes || "",
+
+            nomeEmpresa:
+                currentAudit.nomeEmpresa ||
+                companyData.nomeEmpresa ||
+                "",
+
+            cnpj:
+                currentAudit.cnpj ||
+                companyData.cnpj ||
+                "",
+
+            endereco:
+                currentAudit.endereco ||
+                companyData.endereco ||
+                "",
+
+            respostas:
+                currentAudit.respostas ||
+                {}
+        };
+    }
+
+
+    /*
+     * =====================================================
+     * NOVA AUDITORIA
+     *
+     * Aqui usamos o formulário atual.
+     * =====================================================
+     */
+
+    const respostas =
+        getCurrentAnswers();
+
+
+    const result =
+        calculateScoreFromAnswers(
+            respostas
+        );
+
+
+    return {
+
+        data:
+            dateBRToISO(
+                auditDateInput?.value || ""
+            ),
+
+        auditor:
+            auditorNameInput?.value.trim() ||
+            "",
+
+        score:
+            result.score,
+
+        yesCount:
+            result.yes,
+
+        noCount:
+            result.no,
+
+        totalCount:
+            result.total,
+
+        observacoes:
+            observationsInput?.value.trim() ||
+            "",
+
+        nomeEmpresa:
+            companyData.nomeEmpresa ||
+            "",
+
+        cnpj:
+            companyData.cnpj ||
+            "",
+
+        endereco:
+            companyData.endereco ||
+            "",
+
+        respostas
+    };
 }
 
 
@@ -2795,30 +3110,44 @@ async function ensureJsPdf() {
 async function generatePdf() {
 
     /*
-     * PDF pode ser gerado tanto para auditoria nova
-     * quanto para auditoria histórica.
-     *
-     * Não usamos validateAudit() aqui porque uma
-     * auditoria histórica não pode ser salva, mas
-     * pode perfeitamente gerar PDF.
+     * Guardamos a auditoria ANTES de iniciar o processo.
+     * Isso evita qualquer alteração durante a geração.
      */
+    const auditForPdf =
+        getAuditDataForPdf();
+
+
+    /*
+     * Bloqueia somente o botão.
+     * O restante da auditoria continua intacto.
+     */
+    if (generatePdfButton) {
+
+        generatePdfButton.disabled =
+            true;
+
+        generatePdfButton.textContent =
+            "GERANDO PDF...";
+    }
+
 
     try {
 
-        if (generatePdfButton) {
+        showMessage(
+            "Preparando o PDF...",
+            "info"
+        );
 
-            generatePdfButton.disabled =
-                true;
-
-            generatePdfButton.textContent =
-                "GERANDO PDF...";
-        }
 
         /*
-         * Garante que jsPDF esteja disponível.
+         * =================================================
+         * CARREGA JSPDF
+         * =================================================
          */
+
         const jsPDF =
             await ensureJsPdf();
+
 
         if (
             typeof jsPDF !== "function"
@@ -2829,32 +3158,51 @@ async function generatePdf() {
             );
         }
 
+
         /*
-         * Validação mínima para PDF.
+         * =================================================
+         * DATA
+         * =================================================
          */
-        const isoDate =
-            dateBRToISO(
-                auditDateInput?.value || ""
+
+        const dateISO =
+            auditForPdf.data;
+
+
+        if (!dateISO) {
+
+            throw new Error(
+                "A auditoria não possui uma data válida."
             );
-
-        if (!isoDate) {
-
-            showMessage(
-                "Informe uma data válida para gerar o PDF.",
-                "error"
-            );
-
-            return;
         }
 
-        const answers =
-            getCurrentAnswers();
 
-        const result =
-            calculateScore();
+        const dateBR =
+            formatDate(
+                dateISO
+            );
+
+
+        /*
+         * =================================================
+         * RESPOSTAS
+         * =================================================
+         */
+
+        const answers =
+            auditForPdf.respostas ||
+            {};
+
+
+        /*
+         * =================================================
+         * CRIAR PDF
+         * =================================================
+         */
 
         const pdf =
             new jsPDF({
+
                 orientation:
                     "portrait",
 
@@ -2865,20 +3213,24 @@ async function generatePdf() {
                     "a4"
             });
 
+
         const pageWidth =
             pdf.internal.pageSize.getWidth();
 
         const pageHeight =
             pdf.internal.pageSize.getHeight();
 
+
         let y = 18;
 
 
         /* =================================================
-           FUNÇÃO AUXILIAR PARA NOVA PÁGINA
-        ================================================== */
+           NOVA PÁGINA
+        ================================================= */
 
-        function ensureSpace(requiredHeight = 20) {
+        function ensureSpace(
+            requiredHeight = 20
+        ) {
 
             if (
                 y + requiredHeight >
@@ -2893,14 +3245,69 @@ async function generatePdf() {
 
 
         /* =================================================
-           CABEÇALHO
-        ================================================== */
+           TEXTO QUEBRADO
+        ================================================= */
 
-        pdf.setFontSize(20);
+        function writeWrapped(
+            text,
+            x,
+            fontSize = 10,
+            lineHeight = 5,
+            maxWidth = pageWidth - 40
+        ) {
+
+            const safeText =
+                String(
+                    text || ""
+                );
+
+
+            pdf.setFontSize(
+                fontSize
+            );
+
+
+            const lines =
+                pdf.splitTextToSize(
+                    safeText,
+                    maxWidth
+                );
+
+
+            lines.forEach(
+                (line) => {
+
+                    ensureSpace(
+                        lineHeight + 2
+                    );
+
+                    pdf.text(
+                        line,
+                        x,
+                        y
+                    );
+
+                    y +=
+                        lineHeight;
+                }
+            );
+
+
+            return lines.length;
+        }
+
+
+        /* =================================================
+           CABEÇALHO
+        ================================================= */
 
         pdf.setFont(
             undefined,
             "bold"
+        );
+
+        pdf.setFontSize(
+            20
         );
 
         pdf.text(
@@ -2911,17 +3318,19 @@ async function generatePdf() {
 
         y += 9;
 
-        pdf.setFontSize(15);
+
+        pdf.setFontSize(
+            14
+        );
 
         pdf.text(
-            "Auditoria do posto",
+            "RELATÓRIO DE AUDITORIA",
             20,
             y
         );
 
         y += 10;
 
-        pdf.setFontSize(10);
 
         pdf.setFont(
             undefined,
@@ -2929,129 +3338,133 @@ async function generatePdf() {
         );
 
 
-        if (companyData.nomeEmpresa) {
+        /* =================================================
+           EMPRESA
+        ================================================= */
 
-            pdf.text(
-                `Empresa: ${companyData.nomeEmpresa}`,
+        if (
+            auditForPdf.nomeEmpresa
+        ) {
+
+            writeWrapped(
+                `Empresa: ${auditForPdf.nomeEmpresa}`,
                 20,
-                y
+                10,
+                5
             );
-
-            y += 5;
         }
 
 
-        if (companyData.cnpj) {
+        if (
+            auditForPdf.cnpj
+        ) {
 
-            pdf.text(
-                `CNPJ: ${companyData.cnpj}`,
+            writeWrapped(
+                `CNPJ: ${auditForPdf.cnpj}`,
                 20,
-                y
+                10,
+                5
             );
-
-            y += 5;
         }
 
 
-        if (companyData.endereco) {
+        if (
+            auditForPdf.endereco
+        ) {
 
-            const addressLines =
-                pdf.splitTextToSize(
-                    `Endereço: ${companyData.endereco}`,
-                    pageWidth - 40
-                );
-
-            pdf.text(
-                addressLines,
+            writeWrapped(
+                `Endereço: ${auditForPdf.endereco}`,
                 20,
-                y
+                10,
+                5
             );
-
-            y +=
-                addressLines.length * 5;
         }
 
 
-        y += 3;
+        y += 2;
 
 
-        pdf.text(
-            `Data: ${auditDateInput.value}`,
+        writeWrapped(
+            `Data da auditoria: ${dateBR}`,
             20,
-            y
+            10,
+            5
         );
 
-        y += 5;
 
-
-        pdf.text(
-            `Auditor / Responsável: ${auditorNameInput?.value.trim() || "Não informado"}`,
+        writeWrapped(
+            `Auditor / Responsável: ${auditForPdf.auditor || "Não informado"}`,
             20,
-            y
+            10,
+            5
         );
 
-        y += 10;
+
+        y += 4;
 
 
         /* =================================================
            STATUS
-        ================================================== */
-
-        if (isHistoricalAudit) {
-
-            pdf.setFont(
-                undefined,
-                "bold"
-            );
-
-            pdf.text(
-                "STATUS: AUDITORIA REALIZADA",
-                20,
-                y
-            );
-
-            pdf.setFont(
-                undefined,
-                "normal"
-            );
-
-            y += 7;
-        }
-
-
-        /* =================================================
-           RESULTADO
-        ================================================== */
-
-        pdf.setFontSize(14);
+        ================================================= */
 
         pdf.setFont(
             undefined,
             "bold"
         );
 
+        pdf.setFontSize(
+            10
+        );
+
+
         pdf.text(
-            `Resultado: ${result.score}%`,
+            isHistoricalAudit
+                ? "STATUS: AUDITORIA REALIZADA"
+                : "STATUS: AUDITORIA EM PREENCHIMENTO",
+            20,
+            y
+        );
+
+
+        y += 8;
+
+
+        /* =================================================
+           RESULTADO
+        ================================================= */
+
+        pdf.setFontSize(
+            14
+        );
+
+        pdf.text(
+            `RESULTADO: ${auditForPdf.score}%`,
             20,
             y
         );
 
         y += 6;
 
-        pdf.setFontSize(10);
 
         pdf.setFont(
             undefined,
             "normal"
         );
 
+        pdf.setFontSize(
+            10
+        );
+
+
         pdf.text(
-            `SIM: ${result.yes}    NÃO: ${result.no}    TOTAL: ${result.total}`,
+            `SIM: ${auditForPdf.yesCount}    NÃO: ${auditForPdf.noCount}    TOTAL: ${auditForPdf.totalCount}`,
             20,
             y
         );
 
-        y += 10;
+
+        y += 8;
+
 
         pdf.line(
             20,
@@ -3060,12 +3473,13 @@ async function generatePdf() {
             y
         );
 
+
         y += 8;
 
 
         /* =================================================
            PERGUNTAS
-        ================================================== */
+        ================================================= */
 
         for (
             let index = 0;
@@ -3076,18 +3490,29 @@ async function generatePdf() {
             const question =
                 auditQuestions[index];
 
+
             const answerData =
-                answers[question.id] ||
+                answers?.[question.id] ||
                 {};
 
-            ensureSpace(30);
 
-            pdf.setFontSize(10);
+            ensureSpace(
+                25
+            );
 
+
+            /*
+             * PERGUNTA
+             */
             pdf.setFont(
                 undefined,
                 "bold"
             );
+
+            pdf.setFontSize(
+                10
+            );
+
 
             const questionLines =
                 pdf.splitTextToSize(
@@ -3095,15 +3520,28 @@ async function generatePdf() {
                     pageWidth - 40
                 );
 
-            pdf.text(
-                questionLines,
-                20,
-                y
+
+            questionLines.forEach(
+                (line) => {
+
+                    ensureSpace(
+                        6
+                    );
+
+                    pdf.text(
+                        line,
+                        20,
+                        y
+                    );
+
+                    y += 5;
+                }
             );
 
-            y +=
-                questionLines.length * 5;
 
+            /*
+             * RESPOSTA
+             */
             pdf.setFont(
                 undefined,
                 "normal"
@@ -3167,20 +3605,31 @@ async function generatePdf() {
                     pageWidth - 50
                 );
 
-            pdf.text(
-                answerLines,
-                25,
-                y
+
+            answerLines.forEach(
+                (line) => {
+
+                    ensureSpace(
+                        6
+                    );
+
+                    pdf.text(
+                        line,
+                        25,
+                        y
+                    );
+
+                    y += 5;
+                }
             );
 
-            y +=
-                answerLines.length * 5 +
-                5;
+
+            y += 3;
 
 
             /* =================================================
                IMAGEM
-            ================================================== */
+            ================================================= */
 
             if (
                 question.tipoResposta ===
@@ -3196,9 +3645,11 @@ async function generatePdf() {
                     const imageHeight =
                         60;
 
+
                     ensureSpace(
                         imageHeight + 10
                     );
+
 
                     pdf.addImage(
                         answerData.imagemBase64,
@@ -3208,6 +3659,7 @@ async function generatePdf() {
                         imageWidth,
                         imageHeight
                     );
+
 
                     y +=
                         imageHeight + 8;
@@ -3219,79 +3671,96 @@ async function generatePdf() {
                         imageError
                     );
 
-                    y += 3;
+
+                    ensureSpace(
+                        8
+                    );
+
+
+                    pdf.setFontSize(
+                        9
+                    );
+
+
+                    pdf.text(
+                        "Imagem não pôde ser inserida no PDF.",
+                        25,
+                        y
+                    );
+
+
+                    y += 6;
                 }
             }
+
+
+            y += 2;
         }
 
 
         /* =================================================
            OBSERVAÇÕES
-        ================================================== */
+        ================================================= */
 
-        ensureSpace(40);
+        ensureSpace(
+            30
+        );
+
 
         y += 5;
 
-        pdf.setFontSize(12);
 
         pdf.setFont(
             undefined,
             "bold"
         );
 
+        pdf.setFontSize(
+            12
+        );
+
+
         pdf.text(
-            "Observações",
+            "OBSERVAÇÕES",
             20,
             y
         );
 
+
         y += 7;
 
-        pdf.setFontSize(10);
 
         pdf.setFont(
             undefined,
             "normal"
         );
 
+        pdf.setFontSize(
+            10
+        );
+
+
         const observations =
-            observationsInput?.value.trim() ||
+            auditForPdf.observacoes ||
             "Nenhuma observação registrada.";
 
-        const observationLines =
-            pdf.splitTextToSize(
-                observations,
-                pageWidth - 40
-            );
 
-        /*
-         * Divide observações se necessário.
-         */
-        for (
-            let index = 0;
-            index < observationLines.length;
-            index++
-        ) {
-
-            ensureSpace(6);
-
-            pdf.text(
-                observationLines[index],
-                20,
-                y
-            );
-
-            y += 5;
-        }
+        writeWrapped(
+            observations,
+            20,
+            10,
+            5,
+            pageWidth - 40
+        );
 
 
         /* =================================================
            RODAPÉ
-        ================================================== */
+        ================================================= */
 
         const totalPages =
             pdf.internal.getNumberOfPages();
+
 
         for (
             let page = 1;
@@ -3299,17 +3768,23 @@ async function generatePdf() {
             page++
         ) {
 
-            pdf.setPage(page);
+            pdf.setPage(
+                page
+            );
 
-            pdf.setFontSize(8);
 
             pdf.setFont(
                 undefined,
                 "normal"
             );
 
+            pdf.setFontSize(
+                8
+            );
+
+
             pdf.text(
-                `PostoCheck - Página ${page} de ${totalPages}`,
+                `PostoCheck - Auditoria - Página ${page} de ${totalPages}`,
                 20,
                 pageHeight - 10
             );
@@ -3318,18 +3793,22 @@ async function generatePdf() {
 
         /* =================================================
            NOME DO ARQUIVO
-        ================================================== */
+        ================================================= */
 
         const safeDate =
             (
-                auditDateInput?.value ||
+                dateBR ||
                 "data"
             )
-            .replaceAll("/", "-");
+            .replaceAll(
+                "/",
+                "-"
+            );
+
 
         const safeAuditor =
             (
-                auditorNameInput?.value ||
+                auditForPdf.auditor ||
                 "auditoria"
             )
             .trim()
@@ -3342,12 +3821,141 @@ async function generatePdf() {
                 "-"
             );
 
-        const fileName =
-            `auditoria-${safeDate}-${safeAuditor || "auditoria"}.pdf`;
 
-        pdf.save(
-            fileName
+        const fileName =
+            `PostoCheck-Auditoria-${safeDate}-${safeAuditor || "auditoria"}.pdf`;
+
+
+        /* =================================================
+           GERAR ARQUIVO NO CELULAR
+        ================================================= */
+
+        /*
+         * Primeiro usamos Blob.
+         * Isso é mais confiável em navegadores móveis
+         * do que depender somente do pdf.save().
+         */
+        const pdfBlob =
+            pdf.output(
+                "blob"
+            );
+
+
+        if (
+            !pdfBlob ||
+            pdfBlob.size === 0
+        ) {
+
+            throw new Error(
+                "O PDF foi criado vazio."
+            );
+        }
+
+
+        const blobUrl =
+            URL.createObjectURL(
+                pdfBlob
+            );
+
+
+        /*
+         * Cria um link temporário.
+         *
+         * Android/Chrome normalmente fará o download.
+         */
+        const downloadLink =
+            document.createElement(
+                "a"
+            );
+
+
+        downloadLink.href =
+            blobUrl;
+
+        downloadLink.download =
+            fileName;
+
+        downloadLink.target =
+            "_blank";
+
+        downloadLink.rel =
+            "noopener";
+
+
+        downloadLink.style.display =
+            "none";
+
+
+        document.body.appendChild(
+            downloadLink
         );
+
+
+        /*
+         * Tenta o download.
+         */
+        downloadLink.click();
+
+
+        /*
+         * Remove o elemento.
+         */
+        setTimeout(
+            () => {
+
+                downloadLink.remove();
+
+            },
+            100
+        );
+
+
+        /*
+         * Também disponibiliza o PDF para
+         * navegadores móveis que não respeitam
+         * o atributo download.
+         */
+        setTimeout(
+            () => {
+
+                try {
+
+                    /*
+                     * Não abrimos automaticamente em todos
+                     * os aparelhos porque alguns navegadores
+                     * bloqueiam nova aba depois de operações
+                     * assíncronas.
+                     *
+                     * O downloadLink já foi acionado acima.
+                     */
+
+                } catch (error) {
+
+                    console.warn(
+                        "Fallback do PDF:",
+                        error
+                    );
+                }
+
+            },
+            300
+        );
+
+
+        /*
+         * Libera a memória depois de alguns segundos.
+         */
+        setTimeout(
+            () => {
+
+                URL.revokeObjectURL(
+                    blobUrl
+                );
+
+            },
+            60000
+        );
+
 
         showMessage(
             "PDF gerado com sucesso.",
@@ -3357,17 +3965,41 @@ async function generatePdf() {
     } catch (error) {
 
         console.error(
-            "Erro completo ao gerar PDF:",
+            "ERRO AO GERAR PDF:",
             error
         );
 
+
+        let message =
+            "Não foi possível gerar o PDF.";
+
+
+        if (
+            String(
+                error?.message || ""
+            )
+            .toLowerCase()
+            .includes(
+                "jspdf"
+            )
+        ) {
+
+            message =
+                "Não foi possível carregar a biblioteca do PDF. Verifique a internet do celular e tente novamente.";
+        }
+
+
         showMessage(
-            "Não foi possível carregar a biblioteca do PDF. Verifique sua conexão com a internet e tente novamente.",
+            message,
             "error"
         );
 
     } finally {
 
+        /*
+         * NUNCA deixa o botão preso em
+         * "GERANDO PDF".
+         */
         if (generatePdfButton) {
 
             generatePdfButton.disabled =
@@ -3390,16 +4022,18 @@ function setupEvents() {
         return;
     }
 
-    eventsConfigured = true;
+    eventsConfigured =
+        true;
+
 
     /*
-     * Calendário.
+     * CALENDÁRIO
      */
     setupDatePicker();
 
 
     /*
-     * PDF.
+     * PDF
      */
     if (generatePdfButton) {
 
@@ -3411,7 +4045,7 @@ function setupEvents() {
 
 
     /*
-     * SALVAR.
+     * SALVAR
      */
     if (saveAuditButton) {
 
@@ -3423,7 +4057,7 @@ function setupEvents() {
 
 
     /*
-     * HISTÓRICO.
+     * HISTÓRICO
      */
     if (auditHistory) {
 
@@ -3434,6 +4068,10 @@ function setupEvents() {
                 const auditId =
                     auditHistory.value;
 
+
+                /*
+                 * "Nova auditoria"
+                 */
                 if (!auditId) {
 
                     clearAuditForm();
@@ -3441,6 +4079,10 @@ function setupEvents() {
                     return;
                 }
 
+
+                /*
+                 * Auditoria já salva.
+                 */
                 await loadAuditById(
                     auditId
                 );
@@ -3466,37 +4108,44 @@ onAuthStateChanged(
             return;
         }
 
+
         currentUser =
             user;
 
+
         setupEvents();
 
+
         /*
-         * Estado inicial:
-         * NOVA AUDITORIA.
+         * Começa como nova auditoria.
          */
         isHistoricalAudit =
             false;
 
+
         updateAuditStatus();
+
 
         /*
          * Empresa.
          */
         await loadCompanyProfile();
 
+
         /*
          * Perguntas.
          */
         await loadAuditQuestions();
+
 
         /*
          * Histórico.
          */
         await loadAuditHistory();
 
+
         /*
-         * Data inicial.
+         * Data.
          */
         if (
             auditDateInput &&
@@ -3509,6 +4158,7 @@ onAuthStateChanged(
                 );
         }
 
+
         if (
             hiddenDatePicker &&
             !hiddenDatePicker.value
@@ -3518,11 +4168,13 @@ onAuthStateChanged(
                 getCurrentDateISO();
         }
 
+
         /*
-         * Garante que o formulário comece
-         * liberado para uma nova auditoria.
+         * Formulário começa liberado.
          */
-        setAuditReadOnly(false);
+        setAuditReadOnly(
+            false
+        );
     }
 );
 
