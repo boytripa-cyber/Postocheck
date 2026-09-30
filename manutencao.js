@@ -1,19 +1,17 @@
-/* =====================================================
-   POSTOCHECK
-   TELA DE MANUTENÇÃO
-===================================================== */
+/* =========================================================
+   POSTOCHECK - CONTROLE GLOBAL DE MANUTENÇÃO
+   ========================================================= */
+
+
+/* =========================================================
+   FIREBASE
+   ========================================================= */
 
 import {
     initializeApp,
     getApps,
     getApp
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-
-import {
-    getAuth,
-    onAuthStateChanged,
-    signOut
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
 import {
     getFirestore,
@@ -24,280 +22,486 @@ import {
 import firebaseConfig from "./firebase-config.js";
 
 
-/* =====================================================
-   FIREBASE
-===================================================== */
+/* =========================================================
+   INICIALIZAÇÃO DO FIREBASE
+   ========================================================= */
 
 const app =
     getApps().length > 0
         ? getApp()
         : initializeApp(firebaseConfig);
 
-const auth =
-    getAuth(app);
 
 const db =
     getFirestore(app);
 
 
-/* =====================================================
-   ELEMENTOS
-===================================================== */
+/* =========================================================
+   CONFIGURAÇÕES
+   ========================================================= */
 
-const maintenanceTitle =
-    document.getElementById(
-        "maintenanceTitle"
+const PAGINA_MANUTENCAO =
+    "manutencao.html";
+
+const PAGINA_INICIAL =
+    "index.html";
+
+const INTERVALO_VERIFICACAO =
+    10000;
+
+
+/* =========================================================
+   CAMINHO DO FIRESTORE
+   =========================================================
+
+   configuracoes
+       └── sistema
+           ├── manutencaoAtiva
+           └── mensagem
+
+   ========================================================= */
+
+const REFERENCIA_MANUTENCAO =
+    doc(
+        db,
+        "configuracoes",
+        "sistema"
     );
 
-const maintenanceMessage =
-    document.getElementById(
-        "maintenanceMessage"
-    );
 
-const maintenanceLoading =
-    document.getElementById(
-        "maintenanceLoading"
-    );
+/* =========================================================
+   ELEMENTOS DA PÁGINA DE MANUTENÇÃO
+   ========================================================= */
 
-const maintenanceError =
+const mensagemElemento =
     document.getElementById(
-        "maintenanceError"
-    );
-
-const maintenanceLogoutButton =
-    document.getElementById(
-        "maintenanceLogoutButton"
+        "mensagemManutencao"
     );
 
 
-/* =====================================================
-   CARREGAR CONFIGURAÇÃO
-===================================================== */
+const statusElemento =
+    document.getElementById(
+        "statusManutencao"
+    );
 
-async function loadMaintenanceConfig() {
+
+/* =========================================================
+   IDENTIFICAR PÁGINA ATUAL
+   ========================================================= */
+
+function obterPaginaAtual() {
+
+    const caminho =
+        window.location.pathname;
+
+
+    const partes =
+        caminho.split("/");
+
+
+    const pagina =
+        partes[
+            partes.length - 1
+        ];
+
+
+    return (
+        pagina ||
+        PAGINA_INICIAL
+    ).toLowerCase();
+
+}
+
+
+/* =========================================================
+   VERIFICAR SE ESTÁ NA MANUTENÇÃO
+   ========================================================= */
+
+function estaNaPaginaDeManutencao() {
+
+    return (
+        obterPaginaAtual() ===
+        PAGINA_MANUTENCAO
+    );
+
+}
+
+
+/* =========================================================
+   ATUALIZAR MENSAGEM
+   ========================================================= */
+
+function atualizarMensagem(
+    mensagem
+) {
+
+    if (
+        !mensagemElemento
+    ) {
+        return;
+    }
+
+
+    mensagemElemento.textContent =
+        mensagem ||
+        "O sistema está temporariamente indisponível.";
+
+}
+
+
+/* =========================================================
+   ATUALIZAR STATUS
+   ========================================================= */
+
+function atualizarStatus(
+    texto
+) {
+
+    if (
+        !statusElemento
+    ) {
+        return;
+    }
+
+
+    statusElemento.textContent =
+        texto;
+
+}
+
+
+/* =========================================================
+   ABRIR PÁGINA DE MANUTENÇÃO
+   ========================================================= */
+
+function abrirPaginaDeManutencao() {
+
+    if (
+        estaNaPaginaDeManutencao()
+    ) {
+        return;
+    }
+
+
+    console.warn(
+        "POSTOCHECK: manutenção ativa."
+    );
+
+
+    console.warn(
+        "POSTOCHECK: redirecionando para:",
+        PAGINA_MANUTENCAO
+    );
+
+
+    window.location.replace(
+        PAGINA_MANUTENCAO
+    );
+
+}
+
+
+/* =========================================================
+   VOLTAR PARA O INÍCIO
+   ========================================================= */
+
+function voltarParaInicio() {
+
+    if (
+        !estaNaPaginaDeManutencao()
+    ) {
+        return;
+    }
+
+
+    console.log(
+        "POSTOCHECK: manutenção desativada."
+    );
+
+
+    console.log(
+        "POSTOCHECK: retornando para:",
+        PAGINA_INICIAL
+    );
+
+
+    window.location.replace(
+        PAGINA_INICIAL
+    );
+
+}
+
+
+/* =========================================================
+   VERIFICAR MANUTENÇÃO NO FIRESTORE
+   ========================================================= */
+
+async function verificarManutencao() {
 
     try {
 
-        /*
-         * Estrutura:
-         *
-         * configuracoes/sistema
-         */
-
-        const configRef =
-            doc(
-                db,
-                "configuracoes",
-                "sistema"
-            );
+        console.log(
+            "----------------------------------------"
+        );
 
 
-        const configSnapshot =
+        console.log(
+            "POSTOCHECK: verificando manutenção..."
+        );
+
+
+        console.log(
+            "POSTOCHECK: documento:",
+            "configuracoes/sistema"
+        );
+
+
+        /* =====================================================
+           BUSCAR DOCUMENTO
+           ===================================================== */
+
+        const snapshot =
             await getDoc(
-                configRef
+                REFERENCIA_MANUTENCAO
             );
 
+
+        /* =====================================================
+           DOCUMENTO NÃO EXISTE
+           ===================================================== */
 
         if (
-            !configSnapshot.exists()
+            !snapshot.exists()
         ) {
 
             console.warn(
-                "Configuração de manutenção não encontrada."
+                "POSTOCHECK: documento não encontrado:"
             );
 
 
-            /*
-             * Se não existir configuração,
-             * o sistema considera que não
-             * está em manutenção.
-             */
-
-            window.location.replace(
-                "index.html"
+            console.warn(
+                "configuracoes/sistema"
             );
+
+
+            if (
+                estaNaPaginaDeManutencao()
+            ) {
+
+                atualizarMensagem(
+                    "O sistema está temporariamente indisponível."
+                );
+
+
+                atualizarStatus(
+                    "Configuração não encontrada"
+                );
+
+            }
+
 
             return;
+
         }
 
 
-        const config =
-            configSnapshot.data();
+        /* =====================================================
+           PEGAR DADOS
+           ===================================================== */
+
+        const dados =
+            snapshot.data();
 
 
-        /*
-         * Verifica se a manutenção
-         * realmente está ativa.
-         */
+        /* =====================================================
+           MANUTENÇÃO ATIVA
+           ===================================================== */
 
-        if (
-            config.manutencaoAtiva !== true
-        ) {
-
-            window.location.replace(
-                "index.html"
-            );
-
-            return;
-        }
+        const manutencaoAtiva =
+            dados.manutencaoAtiva === true;
 
 
-        /* =============================================
-           TÍTULO
-        ============================================= */
-
-        if (
-            maintenanceTitle
-        ) {
-
-            maintenanceTitle.textContent =
-                config.titulo ||
-                "Sistema em manutenção";
-        }
-
-
-        /* =============================================
+        /* =====================================================
            MENSAGEM
-        ============================================= */
+           ===================================================== */
+
+        const mensagem =
+            typeof dados.mensagem === "string" &&
+            dados.mensagem.trim() !== ""
+                ? dados.mensagem.trim()
+                : "O sistema está temporariamente indisponível.";
+
+
+        /* =====================================================
+           LOGS
+           ===================================================== */
+
+        console.log(
+            "POSTOCHECK: documento encontrado."
+        );
+
+
+        console.log(
+            "POSTOCHECK: manutencaoAtiva:",
+            manutencaoAtiva
+        );
+
+
+        console.log(
+            "POSTOCHECK: mensagem:",
+            mensagem
+        );
+
+
+        /* =====================================================
+           MANUTENÇÃO ATIVA
+           ===================================================== */
 
         if (
-            maintenanceMessage
+            manutencaoAtiva === true
         ) {
 
-            maintenanceMessage.textContent =
-                config.mensagem ||
-                "O PostoCheck está passando por uma manutenção. Tente novamente mais tarde.";
+            console.warn(
+                "POSTOCHECK: SISTEMA EM MANUTENÇÃO."
+            );
+
+
+            /* -------------------------------------------------
+               SE JÁ ESTÁ NA PÁGINA DE MANUTENÇÃO
+               ------------------------------------------------- */
+
+            if (
+                estaNaPaginaDeManutencao()
+            ) {
+
+                atualizarMensagem(
+                    mensagem
+                );
+
+
+                atualizarStatus(
+                    "Manutenção em andamento"
+                );
+
+
+                console.log(
+                    "POSTOCHECK: mensagem de manutenção atualizada."
+                );
+
+
+                return;
+
+            }
+
+
+            /* -------------------------------------------------
+               SE ESTÁ EM QUALQUER OUTRA PÁGINA
+               ------------------------------------------------- */
+
+            abrirPaginaDeManutencao();
+
+
+            return;
+
         }
 
 
-        /* =============================================
-           ESCONDER LOADING
-        ============================================= */
+        /* =====================================================
+           MANUTENÇÃO DESATIVADA
+           ===================================================== */
+
+        console.log(
+            "POSTOCHECK: sistema disponível."
+        );
+
+
+        /* -----------------------------------------------------
+           SE ESTÁ NA PÁGINA DE MANUTENÇÃO
+           ----------------------------------------------------- */
 
         if (
-            maintenanceLoading
+            estaNaPaginaDeManutencao()
         ) {
 
-            maintenanceLoading.hidden =
-                true;
+            atualizarStatus(
+                "Sistema disponível"
+            );
 
-            maintenanceLoading.style.display =
-                "none";
+
+            voltarParaInicio();
+
+
+            return;
+
         }
 
-    }
-    catch (error) {
+
+        /* -----------------------------------------------------
+           SISTEMA NORMAL
+           ----------------------------------------------------- */
+
+        console.log(
+            "POSTOCHECK: nenhuma ação necessária."
+        );
+
+    } catch (error) {
 
         console.error(
-            "Erro ao carregar manutenção:",
+            "========================================"
+        );
+
+
+        console.error(
+            "POSTOCHECK: ERRO AO VERIFICAR MANUTENÇÃO"
+        );
+
+
+        console.error(
             error
         );
 
 
-        if (
-            maintenanceLoading
-        ) {
+        console.error(
+            "========================================"
+        );
 
-            maintenanceLoading.hidden =
-                true;
 
-            maintenanceLoading.style.display =
-                "none";
-        }
-
+        /* =====================================================
+           ERRO NA PÁGINA DE MANUTENÇÃO
+           ===================================================== */
 
         if (
-            maintenanceError
+            estaNaPaginaDeManutencao()
         ) {
 
-            maintenanceError.hidden =
-                false;
-
-            maintenanceError.style.display =
-                "block";
-        }
-    }
-}
-
-
-/* =====================================================
-   LOGOUT
-===================================================== */
-
-if (
-    maintenanceLogoutButton
-) {
-
-    maintenanceLogoutButton.addEventListener(
-        "click",
-        async function () {
-
-            maintenanceLogoutButton.disabled =
-                true;
-
-            maintenanceLogoutButton.textContent =
-                "SAINDO...";
-
-
-            try {
-
-                await signOut(
-                    auth
-                );
-
-
-                window.location.replace(
-                    "login.html"
-                );
-
-            }
-            catch (error) {
-
-                console.error(
-                    "Erro ao deslogar:",
-                    error
-                );
-
-
-                maintenanceLogoutButton.disabled =
-                    false;
-
-                maintenanceLogoutButton.textContent =
-                    "DESLOGAR";
-
-
-                alert(
-                    "Não foi possível deslogar."
-                );
-            }
-        }
-    );
-}
-
-
-/* =====================================================
-   AUTENTICAÇÃO
-===================================================== */
-
-onAuthStateChanged(
-    auth,
-    function (user) {
-
-        /*
-         * A manutenção é uma tela para
-         * usuários autenticados.
-         */
-
-        if (!user) {
-
-            window.location.replace(
-                "login.html"
+            atualizarMensagem(
+                "O sistema está temporariamente indisponível."
             );
 
-            return;
+
+            atualizarStatus(
+                "Verificando disponibilidade..."
+            );
+
         }
 
-
-        loadMaintenanceConfig();
     }
+
+}
+
+
+/* =========================================================
+   PRIMEIRA VERIFICAÇÃO
+   ========================================================= */
+
+verificarManutencao();
+
+
+/* =========================================================
+   VERIFICAÇÃO AUTOMÁTICA
+   ========================================================= */
+
+setInterval(
+    verificarManutencao,
+    INTERVALO_VERIFICACAO
 );

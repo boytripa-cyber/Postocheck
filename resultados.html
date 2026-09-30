@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Resultados das auditorias do PostoCheck"
+    >
+
+    <title>PostoCheck - Resultados</title>
+
+    <link
+        rel="stylesheet"
+        href="resultados.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- =================================================
+         CABEÇALHO
+    ================================================== -->
+
+    <header class="header">
+
+        <div class="header-content">
+
+
+            <!-- =================================================
+                 NAVEGAÇÃO PRINCIPAL
+            ================================================== -->
+
+            <nav
+                class="header-navigation"
+                aria-label="Navegação principal"
+            >
+
+
+                <!-- INÍCIO -->
+
+                <a
+                    href="index.html"
+                    class="header-button"
+                >
+                    INÍCIO
+                </a>
+
+
+                <!-- AMBIENTAL -->
+
+                <a
+                    href="auditorias.html?categoria=AMBIENTAL"
+                    class="header-button"
+                >
+                    AMBIENTAL
+                </a>
+
+
+                <!-- BOMBAS -->
+
+                <a
+                    href="auditorias.html?categoria=BOMBAS"
+                    class="header-button"
+                >
+                    BOMBAS
+                </a>
+
+
+                <!-- DOCUMENTAL -->
+
+                <a
+                    href="auditorias.html?categoria=DOCUMENTAL"
+                    class="header-button"
+                >
+                    DOCUMENTAL
+                </a>
+
+
+                <!-- RESULTADOS -->
+
+                <a
+                    href="resultados.html"
+                    class="header-button active"
+                    aria-current="page"
+                >
+                    RESULTADOS
+                </a>
+
+
+            </nav>
+
+
+            <!-- =================================================
+                 TÍTULO
+            ================================================== -->
+
+            <div class="header-title">
+                RESULTADOS
+            </div>
+
+
+        </div>
+
+    </header>
+
+
+
+    <!-- =================================================
+         CONTEÚDO PRINCIPAL
+    ================================================== -->
+
+    <main class="main">
+
+
+        <!-- =================================================
+             TÍTULO DA PÁGINA
+        ================================================== -->
+
+        <section class="page-heading">
+
+            <span class="page-label">
+                POSTOCHECK
+            </span>
+
+
+            <h1>
+                Resultado das Auditorias
+            </h1>
+
+
+            <p>
+                Visualização dos resultados das auditorias realizadas.
+            </p>
+
+        </section>
+
+
+
+        <!-- =================================================
+             INDICADORES
+        ================================================== -->
+
+        <section class="summary-grid">
+
+
+            <!-- TOTAL DE AUDITORIAS -->
+
+            <div class="summary-card">
+
+                <span class="summary-icon">
+                    ✓
+                </span>
+
+
+                <div>
+
+                    <span class="summary-label">
+                        AUDITORIAS
+                    </span>
+
+
+                    <strong id="totalAuditorias">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- CONFORMES -->
+
+            <div class="summary-card">
+
+                <span class="summary-icon">
+                    ✓
+                </span>
+
+
+                <div>
+
+                    <span class="summary-label">
+                        CONFORMES
+                    </span>
+
+
+                    <strong id="totalConformes">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- NÃO CONFORMES -->
+
+            <div class="summary-card">
+
+                <span class="summary-icon">
+                    !
+                </span>
+
+
+                <div>
+
+                    <span class="summary-label">
+                        NÃO CONFORMES
+                    </span>
+
+
+                    <strong id="totalNaoConformes">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- ÍNDICE GERAL -->
+
+            <div class="summary-card">
+
+                <span class="summary-icon">
+                    %
+                </span>
+
+
+                <div>
+
+                    <span class="summary-label">
+                        ÍNDICE GERAL
+                    </span>
+
+
+                    <strong id="indiceGeral">
+                        0%
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =================================================
+             GRÁFICOS
+        ================================================== -->
+
+        <section class="charts-grid">
+
+
+            <!-- =================================================
+                 GRÁFICO GERAL
+            ================================================== -->
+
+            <article class="chart-card">
+
+                <div class="chart-header">
+
+                    <div>
+
+                        <span class="chart-label">
+                            RESULTADO GERAL
+                        </span>
+
+
+                        <h2>
+                            Conformidade das Auditorias
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="chart-container chart-small">
+
+                    <canvas
+                        id="graficoGeral"
+                    ></canvas>
+
+                </div>
+
+            </article>
+
+
+
+            <!-- =================================================
+                 GRÁFICO POR ÁREA
+            ================================================== -->
+
+            <article class="chart-card">
+
+                <div class="chart-header">
+
+                    <div>
+
+                        <span class="chart-label">
+                            DESEMPENHO
+                        </span>
+
+
+                        <h2>
+                            Resultado por Área
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="chart-container">
+
+                    <canvas
+                        id="graficoAreas"
+                    ></canvas>
+
+                </div>
+
+            </article>
+
+
+
+            <!-- =================================================
+                 EVOLUÇÃO
+            ================================================== -->
+
+            <article class="chart-card chart-card-wide">
+
+                <div class="chart-header">
+
+                    <div>
+
+                        <span class="chart-label">
+                            ACOMPANHAMENTO
+                        </span>
+
+
+                        <h2>
+                            Evolução das Auditorias
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="chart-container chart-evolution">
+
+                    <canvas
+                        id="graficoEvolucao"
+                    ></canvas>
+
+                </div>
+
+            </article>
+
+
+
+            <!-- =================================================
+                 NÃO CONFORMIDADES
+            ================================================== -->
+
+            <article class="chart-card">
+
+                <div class="chart-header">
+
+                    <div>
+
+                        <span class="chart-label">
+                            PONTOS DE ATENÇÃO
+                        </span>
+
+
+                        <h2>
+                            Não Conformidades
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="chart-container">
+
+                    <canvas
+                        id="graficoNaoConformidades"
+                    ></canvas>
+
+                </div>
+
+            </article>
+
+
+        </section>
+
+
+    </main>
+
+
+
+    <!-- =================================================
+         RODAPÉ
+    ================================================== -->
+
+    <footer class="footer">
+
+        <p>
+            © 2026 PostoCheck
+        </p>
+
+    </footer>
+
+
+
+    <!-- =================================================
+         CHART.JS
+    ================================================== -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/chart.js"
+    ></script>
+
+
+
+    <!-- =================================================
+         JAVASCRIPT DOS RESULTADOS
+    ================================================== -->
+ <script
+    type="module"
+    src="./manutencao.js"
+></script>
+
+    <script
+        type="module"
+        src="./resultados.js"
+    ></script>
+
+
+</body>
+
+</html>

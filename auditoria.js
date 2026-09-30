@@ -2,21 +2,45 @@
    POSTOCHECK
    auditoria.js
 
-   VERSÃO AJUSTADA
+   VERSÃO COMPLETA E AJUSTADA
 
-   PRINCIPAIS CORREÇÕES:
+   FUNCIONAMENTO:
 
-   1. Auditorias salvas ficam somente para consulta.
-   2. Auditorias históricas não podem ser alteradas.
-   3. Auditoria aberta no histórico pode gerar PDF.
-   4. O PDF usa diretamente os dados da auditoria carregada.
-   5. jsPDF é carregado automaticamente.
-   6. Existe fallback para outro CDN caso o primeiro falhe.
-   7. O botão GERAR PDF nunca fica preso em "GERANDO PDF".
-   8. PDF funciona para auditoria nova e histórica.
-   9. Respostas SIM/NÃO, texto, imagens e observações
-      são incluídos no PDF.
-   10. Compatível com navegador de smartphone.
+   1. Uma única página:
+      auditorias.html
+
+   2. Categorias pela URL:
+      auditorias.html?categoria=AMBIENTAL
+      auditorias.html?categoria=BOMBAS
+      auditorias.html?categoria=DOCUMENTAL
+
+   3. Ao entrar em auditorias.html SEM categoria:
+      NÃO carrega nenhum checklist.
+
+   4. O checklist somente aparece quando uma
+      categoria é selecionada.
+
+   5. Ao trocar de categoria, a página é recarregada.
+
+   6. Respostas não salvas são mantidas temporariamente
+      usando sessionStorage.
+
+   7. O rascunho de todas as categorias é preservado.
+
+   8. Auditorias salvas ficam somente para consulta.
+
+   9. Auditorias históricas podem gerar PDF.
+
+   10. PDF utiliza os dados da auditoria carregada.
+
+   11. SIM/NÃO, texto, imagens e observações.
+
+   12. Score considera TODAS as perguntas da auditoria,
+       independentemente da categoria atualmente visualizada.
+
+   13. Firebase / Firestore.
+
+   14. Compatível com smartphone.
 ========================================================= */
 
 
@@ -113,6 +137,21 @@ const auditMessage =
 const auditStatus =
     document.getElementById("auditStatus");
 
+const selectedCategoryLabel =
+    document.getElementById(
+        "selectedCategoryLabel"
+    );
+
+
+/* =========================================================
+   ABAS
+========================================================= */
+
+const categoryTabs =
+    document.querySelectorAll(
+        ".category-tab"
+    );
+
 
 /* =========================================================
    EMPRESA
@@ -159,16 +198,369 @@ let eventsConfigured = false;
 
 let pdfLibraryPromise = null;
 
-
-/*
- * false = nova auditoria
- * true  = auditoria já salva / somente consulta
- */
 let isHistoricalAudit = false;
 
 
+/*
+ * IMPORTANTE:
+ *
+ * null = nenhuma categoria selecionada.
+ *
+ * Isso é diferente de "":
+ *
+ * null
+ * -> não mostrar checklist.
+ *
+ * AMBIENTAL
+ * -> mostrar Ambiental.
+ *
+ * BOMBAS
+ * -> mostrar Bombas.
+ *
+ * DOCUMENTAL
+ * -> mostrar Documental.
+ */
+
+let selectedCategory = null;
+
+
 /* =========================================================
-   MENSAGENS
+   CATEGORIAS PERMITIDAS
+========================================================= */
+
+const allowedCategories = [
+    "AMBIENTAL",
+    "BOMBAS",
+    "DOCUMENTAL"
+];
+
+
+/* =========================================================
+   CHAVE DO RASCUNHO
+========================================================= */
+
+const DRAFT_STORAGE_PREFIX =
+    "postocheck_auditoria_rascunho_";
+
+
+/* =========================================================
+   NORMALIZAR CATEGORIA
+========================================================= */
+
+function normalizeCategory(value) {
+
+    return String(value || "")
+        .trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        );
+}
+
+
+/* =========================================================
+   LER CATEGORIA DA URL
+========================================================= */
+
+function getCategoryFromUrl() {
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const category =
+        params.get("categoria");
+
+    const normalized =
+        normalizeCategory(
+            category
+        );
+
+    if (
+        allowedCategories.includes(
+            normalized
+        )
+    ) {
+
+        return normalized;
+    }
+
+    /*
+     * SEM CATEGORIA:
+     *
+     * Retorna null.
+     *
+     * Isso impede que o checklist
+     * seja carregado automaticamente.
+     */
+
+    return null;
+}
+
+
+/* =========================================================
+   INICIALIZAR CATEGORIA PELA URL
+========================================================= */
+
+function initializeCategoryFromUrl() {
+
+    selectedCategory =
+        getCategoryFromUrl();
+
+    updateCategoryTabs();
+
+    updateSelectedCategoryLabel();
+
+    /*
+     * Se não existe categoria,
+     * mostra apenas a tela inicial.
+     */
+
+    if (!selectedCategory) {
+
+        showCategorySelection();
+
+        updateScore();
+
+        return;
+    }
+
+    /*
+     * Existe categoria.
+     * O checklist será carregado
+     * posteriormente.
+     */
+}
+
+
+/* =========================================================
+   MOSTRAR TELA DE SELEÇÃO DE CATEGORIA
+========================================================= */
+
+function showCategorySelection() {
+
+    if (!checklistElement) {
+        return;
+    }
+
+    checklistElement.innerHTML = `
+        <div class="empty-checklist">
+            <div class="empty-checklist-icon">
+                ☑
+            </div>
+
+            <h3>
+                Selecione uma categoria
+            </h3>
+
+            <p>
+                Clique em uma das abas acima para iniciar a auditoria.
+            </p>
+        </div>
+    `;
+
+    /*
+     * Score zerado enquanto nenhuma categoria
+     * estiver selecionada.
+     */
+
+    if (scoreValue) {
+        scoreValue.textContent = "0%";
+    }
+
+    if (yesCountElement) {
+        yesCountElement.textContent = "0";
+    }
+
+    if (noCountElement) {
+        noCountElement.textContent = "0";
+    }
+
+    if (totalCountElement) {
+        totalCountElement.textContent = "0";
+    }
+
+    if (scoreCircle) {
+
+        scoreCircle.style.background =
+            `conic-gradient(
+                #f5c400 0% 0%,
+                #e5e5e5 0% 100%
+            )`;
+    }
+}
+
+
+/* =========================================================
+   DEFINIR CATEGORIA
+========================================================= */
+
+function setSelectedCategory(
+    category
+) {
+
+    const normalized =
+        normalizeCategory(
+            category
+        );
+
+    if (
+        !allowedCategories.includes(
+            normalized
+        )
+    ) {
+
+        return;
+    }
+
+    selectedCategory =
+        normalized;
+
+    updateCategoryTabs();
+
+    updateSelectedCategoryLabel();
+
+    renderChecklist();
+
+    updateScore();
+}
+
+
+/* =========================================================
+   ATUALIZAR ABAS
+========================================================= */
+
+function updateCategoryTabs() {
+
+    categoryTabs.forEach(
+        (tab) => {
+
+            const category =
+                normalizeCategory(
+                    tab.dataset.category
+                );
+
+            const active =
+                selectedCategory ===
+                category;
+
+            tab.classList.toggle(
+                "active",
+                active
+            );
+
+            if (active) {
+
+                tab.setAttribute(
+                    "aria-current",
+                    "page"
+                );
+
+            } else {
+
+                tab.removeAttribute(
+                    "aria-current"
+                );
+            }
+        }
+    );
+}
+
+
+/* =========================================================
+   ATUALIZAR LABEL DA CATEGORIA
+========================================================= */
+
+function updateSelectedCategoryLabel() {
+
+    if (!selectedCategoryLabel) {
+        return;
+    }
+
+    /*
+     * Não mostrar:
+     *
+     * FILTRO ATIVO: AMBIENTAL
+     *
+     * O elemento permanece vazio.
+     */
+
+    selectedCategoryLabel.textContent = "";
+
+    selectedCategoryLabel.style.display =
+        "none";
+}
+
+
+/* =========================================================
+   CONFIGURAR ABAS
+========================================================= */
+
+function setupCategoryTabs() {
+
+    if (!categoryTabs.length) {
+        return;
+    }
+
+    categoryTabs.forEach(
+        (tab) => {
+
+            tab.addEventListener(
+                "click",
+                (event) => {
+
+                    const category =
+                        normalizeCategory(
+                            tab.dataset.category
+                        );
+
+                    if (
+                        !allowedCategories.includes(
+                            category
+                        )
+                    ) {
+
+                        return;
+                    }
+
+                    /*
+                     * Salva o rascunho antes
+                     * de trocar de categoria.
+                     *
+                     * O saveDraft() foi ajustado
+                     * para preservar respostas
+                     * de outras categorias.
+                     */
+
+                    saveDraft();
+
+                    event.preventDefault();
+
+                    /*
+                     * Uma única página.
+                     */
+
+                    const newUrl =
+                        `auditorias.html?categoria=${encodeURIComponent(category)}`;
+
+                    window.location.href =
+                        newUrl;
+                }
+            );
+        }
+    );
+
+    updateCategoryTabs();
+
+    updateSelectedCategoryLabel();
+}
+
+
+/* =========================================================
+   MENSAGEM
 ========================================================= */
 
 function showMessage(
@@ -203,12 +595,18 @@ function getCurrentDateISO() {
     const month =
         String(
             today.getMonth() + 1
-        ).padStart(2, "0");
+        ).padStart(
+            2,
+            "0"
+        );
 
     const day =
         String(
             today.getDate()
-        ).padStart(2, "0");
+        ).padStart(
+            2,
+            "0"
+        );
 
     return `${year}-${month}-${day}`;
 }
@@ -239,6 +637,7 @@ function dateISOToBR(value) {
                 text
             )
         ) {
+
             return text;
         }
 
@@ -294,6 +693,7 @@ function dateBRToISO(value) {
         date.getMonth() !== month - 1 ||
         date.getDate() !== day
     ) {
+
         return "";
     }
 
@@ -333,15 +733,31 @@ function escapeHtml(value) {
         value === undefined ||
         value === null
     ) {
+
         return "";
     }
 
     return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
 }
 
 
@@ -353,7 +769,8 @@ function escapeSelector(value) {
 
     if (
         window.CSS &&
-        typeof window.CSS.escape === "function"
+        typeof window.CSS.escape ===
+        "function"
     ) {
 
         return window.CSS.escape(
@@ -370,20 +787,23 @@ function escapeSelector(value) {
 
 
 /* =========================================================
-   NORMALIZAR TIPO
+   NORMALIZAR TIPO DE RESPOSTA
 ========================================================= */
 
 function normalizeAnswerType(type) {
 
     const normalized =
-        String(type || "sim_nao")
-            .trim()
-            .toLowerCase();
+        String(
+            type || "sim_nao"
+        )
+        .trim()
+        .toLowerCase();
 
     if (
         normalized === "texto" ||
         normalized === "text"
     ) {
+
         return "texto";
     }
 
@@ -392,6 +812,7 @@ function normalizeAnswerType(type) {
         normalized === "imagem" ||
         normalized === "image"
     ) {
+
         return "imagem64";
     }
 
@@ -442,15 +863,13 @@ function updateAuditStatus() {
    BLOQUEAR / LIBERAR FORMULÁRIO
 ========================================================= */
 
-function setAuditReadOnly(readOnly) {
+function setAuditReadOnly(
+    readOnly
+) {
 
     isHistoricalAudit =
         Boolean(readOnly);
 
-
-    /*
-     * DATA
-     */
     if (auditDateInput) {
 
         auditDateInput.readOnly =
@@ -460,10 +879,6 @@ function setAuditReadOnly(readOnly) {
             false;
     }
 
-
-    /*
-     * CALENDÁRIO
-     */
     if (calendarButton) {
 
         calendarButton.disabled =
@@ -476,30 +891,18 @@ function setAuditReadOnly(readOnly) {
             isHistoricalAudit;
     }
 
-
-    /*
-     * AUDITOR
-     */
     if (auditorNameInput) {
 
         auditorNameInput.disabled =
             isHistoricalAudit;
     }
 
-
-    /*
-     * OBSERVAÇÕES
-     */
     if (observationsInput) {
 
         observationsInput.disabled =
             isHistoricalAudit;
     }
 
-
-    /*
-     * BOTÃO SALVAR
-     */
     if (saveAuditButton) {
 
         saveAuditButton.disabled =
@@ -511,13 +914,6 @@ function setAuditReadOnly(readOnly) {
                 : "SALVAR";
     }
 
-
-    /*
-     * BOTÃO PDF
-     *
-     * IMPORTANTE:
-     * PDF permanece sempre liberado.
-     */
     if (generatePdfButton) {
 
         generatePdfButton.disabled =
@@ -527,10 +923,6 @@ function setAuditReadOnly(readOnly) {
             "GERAR PDF";
     }
 
-
-    /*
-     * CHECKLIST
-     */
     if (checklistElement) {
 
         const controls =
@@ -552,7 +944,6 @@ function setAuditReadOnly(readOnly) {
         );
     }
 
-
     updateAuditStatus();
 }
 
@@ -567,6 +958,7 @@ function setupDatePicker() {
         !auditDateInput ||
         !hiddenDatePicker
     ) {
+
         return;
     }
 
@@ -590,7 +982,6 @@ function setupDatePicker() {
     auditDateInput.readOnly =
         true;
 
-
     auditDateInput.addEventListener(
         "keydown",
         (event) => {
@@ -599,7 +990,6 @@ function setupDatePicker() {
         }
     );
 
-
     auditDateInput.addEventListener(
         "paste",
         (event) => {
@@ -607,7 +997,6 @@ function setupDatePicker() {
             event.preventDefault();
         }
     );
-
 
     if (calendarButton) {
 
@@ -654,11 +1043,11 @@ function setupDatePicker() {
                 }
 
                 hiddenDatePicker.focus();
+
                 hiddenDatePicker.click();
             }
         );
     }
-
 
     hiddenDatePicker.addEventListener(
         "change",
@@ -676,6 +1065,8 @@ function setupDatePicker() {
                 dateISOToBR(
                     hiddenDatePicker.value
                 );
+
+            saveDraft();
         }
     );
 }
@@ -789,6 +1180,21 @@ async function loadAuditQuestions() {
         !checklistElement ||
         !currentUser
     ) {
+
+        return;
+    }
+
+    /*
+     * SEM CATEGORIA:
+     *
+     * NÃO consulta as perguntas e NÃO
+     * renderiza o checklist.
+     */
+
+    if (!selectedCategory) {
+
+        showCategorySelection();
+
         return;
     }
 
@@ -848,7 +1254,10 @@ async function loadAuditQuestions() {
                 const data =
                     documentSnapshot.data();
 
-                if (data.ativo === false) {
+                if (
+                    data.ativo === false
+                ) {
+
                     return;
                 }
 
@@ -881,7 +1290,6 @@ async function loadAuditQuestions() {
                 a.ordem - b.ordem
         );
 
-
         if (
             auditQuestions.length === 0
         ) {
@@ -897,10 +1305,20 @@ async function loadAuditQuestions() {
             return;
         }
 
+        /*
+         * Renderiza SOMENTE a categoria
+         * escolhida na URL.
+         */
 
         renderChecklist();
 
         updateScore();
+
+        /*
+         * Restaura o rascunho.
+         */
+
+        restoreDraft();
 
         setAuditReadOnly(
             isHistoricalAudit
@@ -937,16 +1355,54 @@ function renderChecklist() {
         return;
     }
 
+    /*
+     * SEM CATEGORIA:
+     *
+     * Não renderiza perguntas.
+     */
+
+    if (!selectedCategory) {
+
+        showCategorySelection();
+
+        return;
+    }
+
     checklistElement.innerHTML = "";
 
     let lastCategory = "";
 
+    let visibleQuestions = 0;
+
     auditQuestions.forEach(
         (question, index) => {
 
+            const questionCategory =
+                normalizeCategory(
+                    question.categoria
+                );
+
+            /*
+             * SOMENTE a categoria selecionada.
+             */
+
+            const showQuestion =
+                questionCategory ===
+                selectedCategory;
+
+            if (!showQuestion) {
+                return;
+            }
+
+            visibleQuestions++;
+
+            /*
+             * CABEÇALHO DA CATEGORIA
+             */
+
             if (
-                question.categoria &&
-                question.categoria !== lastCategory
+                questionCategory !==
+                lastCategory
             ) {
 
                 const categoryElement =
@@ -958,16 +1414,20 @@ function renderChecklist() {
                     "checklist-category";
 
                 categoryElement.textContent =
-                    question.categoria;
+                    question.categoria ||
+                    "SEM CATEGORIA";
 
                 checklistElement.appendChild(
                     categoryElement
                 );
 
                 lastCategory =
-                    question.categoria;
+                    questionCategory;
             }
 
+            /*
+             * CARD DA PERGUNTA
+             */
 
             const questionCard =
                 document.createElement(
@@ -980,13 +1440,12 @@ function renderChecklist() {
             questionCard.dataset.questionId =
                 question.id;
 
-
             let answerHtml = "";
-
 
             /*
              * SIM / NÃO
              */
+
             if (
                 question.tipoResposta ===
                 "sim_nao"
@@ -1035,10 +1494,10 @@ function renderChecklist() {
                 `;
             }
 
-
             /*
              * TEXTO
              */
+
             if (
                 question.tipoResposta ===
                 "texto"
@@ -1059,10 +1518,10 @@ function renderChecklist() {
                 `;
             }
 
-
             /*
              * IMAGEM
              */
+
             if (
                 question.tipoResposta ===
                 "imagem64"
@@ -1088,6 +1547,7 @@ function renderChecklist() {
 
                         </label>
 
+
                         <div
                             class="image-preview"
                             data-preview-id="${escapeHtml(question.id)}"
@@ -1097,6 +1557,9 @@ function renderChecklist() {
                 `;
             }
 
+            /*
+             * CARD
+             */
 
             questionCard.innerHTML = `
 
@@ -1109,7 +1572,9 @@ function renderChecklist() {
                     <div class="question-content">
 
                         <p class="question-text">
-                            ${escapeHtml(question.pergunta)}
+                            ${escapeHtml(
+                                question.pergunta
+                            )}
                         </p>
 
                     </div>
@@ -1119,16 +1584,37 @@ function renderChecklist() {
                 ${answerHtml}
             `;
 
-
             checklistElement.appendChild(
                 questionCard
             );
         }
     );
 
+    /*
+     * Se a categoria não possui perguntas.
+     */
+
+    if (visibleQuestions === 0) {
+
+        checklistElement.innerHTML = `
+            <div class="empty-message">
+                Nenhuma pergunta cadastrada para a categoria
+                ${escapeHtml(selectedCategory)}.
+            </div>
+        `;
+
+        updateSelectedCategoryLabel();
+
+        setAuditReadOnly(
+            isHistoricalAudit
+        );
+
+        return;
+    }
 
     addChecklistEvents();
 
+    updateSelectedCategoryLabel();
 
     setAuditReadOnly(
         isHistoricalAudit
@@ -1147,7 +1633,6 @@ function addChecklistEvents() {
             ".answer-checkbox"
         );
 
-
     checkboxes.forEach(
         (checkbox) => {
 
@@ -1164,7 +1649,6 @@ function addChecklistEvents() {
 
                     const answer =
                         checkbox.dataset.answer;
-
 
                     if (checkbox.checked) {
 
@@ -1188,18 +1672,18 @@ function addChecklistEvents() {
                         }
                     }
 
+                    saveDraft();
+
                     updateScore();
                 }
             );
         }
     );
 
-
     const textInputs =
         document.querySelectorAll(
             ".question-text-input"
         );
-
 
     textInputs.forEach(
         (input) => {
@@ -1214,17 +1698,17 @@ function addChecklistEvents() {
 
                     input.dataset.changed =
                         "true";
+
+                    saveDraft();
                 }
             );
         }
     );
 
-
     const imageInputs =
         document.querySelectorAll(
             ".question-image-input"
         );
-
 
     imageInputs.forEach(
         (input) => {
@@ -1242,7 +1726,9 @@ function addChecklistEvents() {
    UPLOAD IMAGEM
 ========================================================= */
 
-async function handleImageUpload(event) {
+async function handleImageUpload(
+    event
+) {
 
     if (isHistoricalAudit) {
 
@@ -1264,7 +1750,6 @@ async function handleImageUpload(event) {
     const questionId =
         input.dataset.questionId;
 
-
     if (
         !file.type ||
         !file.type.startsWith("image/")
@@ -1280,7 +1765,6 @@ async function handleImageUpload(event) {
         return;
     }
 
-
     try {
 
         showMessage(
@@ -1289,17 +1773,17 @@ async function handleImageUpload(event) {
         );
 
         const base64 =
-            await resizeImage(file);
+            await resizeImage(
+                file
+            );
 
         input.dataset.base64 =
             base64;
-
 
         const preview =
             document.querySelector(
                 `[data-preview-id="${escapeSelector(questionId)}"]`
             );
-
 
         if (preview) {
 
@@ -1322,12 +1806,10 @@ async function handleImageUpload(event) {
                 </div>
             `;
 
-
             const removeButton =
                 preview.querySelector(
                     ".remove-image-button"
                 );
-
 
             if (removeButton) {
 
@@ -1344,11 +1826,14 @@ async function handleImageUpload(event) {
                         delete input.dataset.base64;
 
                         preview.innerHTML = "";
+
+                        saveDraft();
                     }
                 );
             }
         }
 
+        saveDraft();
 
         showMessage(
             "Imagem adicionada.",
@@ -1386,13 +1871,11 @@ function resizeImage(file) {
             const reader =
                 new FileReader();
 
-
             reader.onload =
                 (event) => {
 
                     const image =
                         new Image();
-
 
                     image.onload =
                         () => {
@@ -1409,9 +1892,9 @@ function resizeImage(file) {
                             let height =
                                 image.height;
 
-
                             if (
-                                width > maxWidth
+                                width >
+                                maxWidth
                             ) {
 
                                 height =
@@ -1425,9 +1908,9 @@ function resizeImage(file) {
                                     maxWidth;
                             }
 
-
                             if (
-                                height > maxHeight
+                                height >
+                                maxHeight
                             ) {
 
                                 width =
@@ -1441,25 +1924,25 @@ function resizeImage(file) {
                                     maxHeight;
                             }
 
-
                             const canvas =
                                 document.createElement(
                                     "canvas"
                                 );
 
-
                             canvas.width =
-                                Math.round(width);
+                                Math.round(
+                                    width
+                                );
 
                             canvas.height =
-                                Math.round(height);
-
+                                Math.round(
+                                    height
+                                );
 
                             const context =
                                 canvas.getContext(
                                     "2d"
                                 );
-
 
                             if (!context) {
 
@@ -1472,7 +1955,6 @@ function resizeImage(file) {
                                 return;
                             }
 
-
                             context.drawImage(
                                 image,
                                 0,
@@ -1481,19 +1963,16 @@ function resizeImage(file) {
                                 canvas.height
                             );
 
-
                             const base64 =
                                 canvas.toDataURL(
                                     "image/jpeg",
                                     0.72
                                 );
 
-
                             resolve(
                                 base64
                             );
                         };
-
 
                     image.onerror =
                         () => {
@@ -1505,11 +1984,9 @@ function resizeImage(file) {
                             );
                         };
 
-
                     image.src =
                         event.target.result;
                 };
-
 
             reader.onerror =
                 () => {
@@ -1521,8 +1998,9 @@ function resizeImage(file) {
                     );
                 };
 
-
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(
+                file
+            );
         }
     );
 }
@@ -1536,13 +2014,41 @@ function getCurrentAnswers() {
 
     const answers = {};
 
+    /*
+     * IMPORTANTE:
+     *
+     * Aqui só conseguimos pegar as respostas
+     * que estão atualmente renderizadas.
+     *
+     * O saveDraft() faz a união com o rascunho
+     * anterior para preservar as outras categorias.
+     */
 
     auditQuestions.forEach(
         (question) => {
 
+            const questionCategory =
+                normalizeCategory(
+                    question.categoria
+                );
+
+            /*
+             * Só procura no DOM perguntas
+             * da categoria atualmente carregada.
+             */
+
+            if (
+                questionCategory !==
+                selectedCategory
+            ) {
+
+                return;
+            }
+
             /*
              * SIM / NÃO
              */
+
             if (
                 question.tipoResposta ===
                 "sim_nao"
@@ -1553,8 +2059,10 @@ function getCurrentAnswers() {
                         `.answer-checkbox[data-question-id="${escapeSelector(question.id)}"]:checked`
                     );
 
-
                 answers[question.id] = {
+
+                    categoria:
+                        question.categoria || "",
 
                     tipoResposta:
                         "sim_nao",
@@ -1568,14 +2076,13 @@ function getCurrentAnswers() {
                         ""
                 };
 
-
                 return;
             }
-
 
             /*
              * TEXTO
              */
+
             if (
                 question.tipoResposta ===
                 "texto"
@@ -1586,8 +2093,10 @@ function getCurrentAnswers() {
                         `.question-text-input[data-question-id="${escapeSelector(question.id)}"]`
                     );
 
-
                 answers[question.id] = {
+
+                    categoria:
+                        question.categoria || "",
 
                     tipoResposta:
                         "texto",
@@ -1601,14 +2110,13 @@ function getCurrentAnswers() {
                         ""
                 };
 
-
                 return;
             }
-
 
             /*
              * IMAGEM
              */
+
             if (
                 question.tipoResposta ===
                 "imagem64"
@@ -1619,8 +2127,10 @@ function getCurrentAnswers() {
                         `.question-image-input[data-question-id="${escapeSelector(question.id)}"]`
                     );
 
-
                 answers[question.id] = {
+
+                    categoria:
+                        question.categoria || "",
 
                     tipoResposta:
                         "imagem64",
@@ -1629,12 +2139,12 @@ function getCurrentAnswers() {
                         "",
 
                     imagemBase64:
-                        input?.dataset.base64 || ""
+                        input?.dataset.base64 ||
+                        ""
                 };
             }
         }
     );
-
 
     return answers;
 }
@@ -1644,7 +2154,34 @@ function getCurrentAnswers() {
    CALCULAR SCORE
 ========================================================= */
 
-function calculateScoreFromAnswers(answers = {}) {
+function calculateScoreFromAnswers(
+    answers = {}
+) {
+
+    /*
+     * SEM CATEGORIA:
+     *
+     * Não mostra score de checklist.
+     */
+
+    if (!selectedCategory) {
+
+        return {
+
+            score: 0,
+
+            yes: 0,
+
+            no: 0,
+
+            total: 0
+        };
+    }
+
+    /*
+     * O score considera TODAS as perguntas
+     * SIM/NÃO da auditoria.
+     */
 
     const scoreQuestions =
         auditQuestions.filter(
@@ -1653,7 +2190,6 @@ function calculateScoreFromAnswers(answers = {}) {
                 "sim_nao"
         );
 
-
     const total =
         scoreQuestions.length;
 
@@ -1661,17 +2197,17 @@ function calculateScoreFromAnswers(answers = {}) {
 
     let no = 0;
 
-
     scoreQuestions.forEach(
         (question) => {
 
             const data =
-                answers?.[question.id];
+                answers?.[
+                    question.id
+                ];
 
             if (!data) {
                 return;
             }
-
 
             if (
                 data.resposta ===
@@ -1690,7 +2226,6 @@ function calculateScoreFromAnswers(answers = {}) {
         }
     );
 
-
     const score =
         total > 0
             ? Math.round(
@@ -1698,11 +2233,14 @@ function calculateScoreFromAnswers(answers = {}) {
             )
             : 0;
 
-
     return {
+
         score,
+
         yes,
+
         no,
+
         total
     };
 }
@@ -1727,9 +2265,43 @@ function calculateScore() {
 function updateScore() {
 
     /*
-     * Se estamos visualizando uma auditoria salva,
-     * usamos o resultado salvo no Firebase.
+     * SEM CATEGORIA
      */
+
+    if (!selectedCategory) {
+
+        if (scoreValue) {
+            scoreValue.textContent = "0%";
+        }
+
+        if (yesCountElement) {
+            yesCountElement.textContent = "0";
+        }
+
+        if (noCountElement) {
+            noCountElement.textContent = "0";
+        }
+
+        if (totalCountElement) {
+            totalCountElement.textContent = "0";
+        }
+
+        if (scoreCircle) {
+
+            scoreCircle.style.background =
+                `conic-gradient(
+                    #f5c400 0% 0%,
+                    #e5e5e5 0% 100%
+                )`;
+        }
+
+        return;
+    }
+
+    /*
+     * HISTÓRICA
+     */
+
     if (
         isHistoricalAudit &&
         currentAudit
@@ -1755,23 +2327,26 @@ function updateScore() {
                 currentAudit.totalCount ?? 0
             );
 
-
         if (scoreValue) {
+
             scoreValue.textContent =
                 `${score}%`;
         }
 
         if (yesCountElement) {
+
             yesCountElement.textContent =
                 yes;
         }
 
         if (noCountElement) {
+
             noCountElement.textContent =
                 no;
         }
 
         if (totalCountElement) {
+
             totalCountElement.textContent =
                 total;
         }
@@ -1788,10 +2363,12 @@ function updateScore() {
         return;
     }
 
+    /*
+     * NOVA AUDITORIA
+     */
 
     const result =
         calculateScore();
-
 
     if (scoreValue) {
 
@@ -1799,13 +2376,11 @@ function updateScore() {
             `${result.score}%`;
     }
 
-
     if (yesCountElement) {
 
         yesCountElement.textContent =
             result.yes;
     }
-
 
     if (noCountElement) {
 
@@ -1813,13 +2388,11 @@ function updateScore() {
             result.no;
     }
 
-
     if (totalCountElement) {
 
         totalCountElement.textContent =
             result.total;
     }
-
 
     if (scoreCircle) {
 
@@ -1828,6 +2401,319 @@ function updateScore() {
                 #f5c400 0% ${result.score}%,
                 #e5e5e5 ${result.score}% 100%
             )`;
+    }
+}
+
+
+/* =========================================================
+   CHAVE DO RASCUNHO
+========================================================= */
+
+function getDraftStorageKey() {
+
+    if (!currentUser) {
+        return null;
+    }
+
+    return (
+        DRAFT_STORAGE_PREFIX +
+        currentUser.uid
+    );
+}
+
+
+/* =========================================================
+   SALVAR RASCUNHO
+========================================================= */
+
+function saveDraft() {
+
+    if (
+        !currentUser ||
+        isHistoricalAudit
+    ) {
+
+        return;
+    }
+
+    const storageKey =
+        getDraftStorageKey();
+
+    if (!storageKey) {
+        return;
+    }
+
+    try {
+
+        /*
+         * Primeiro recupera o rascunho anterior.
+         *
+         * Isso é FUNDAMENTAL para trocar de categoria
+         * sem perder as respostas anteriores.
+         */
+
+        let oldDraft = null;
+
+        try {
+
+            const oldRaw =
+                sessionStorage.getItem(
+                    storageKey
+                );
+
+            if (oldRaw) {
+
+                oldDraft =
+                    JSON.parse(
+                        oldRaw
+                    );
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Não foi possível ler o rascunho anterior:",
+                error
+            );
+        }
+
+        /*
+         * Respostas atualmente visíveis.
+         */
+
+        const currentAnswers =
+            getCurrentAnswers();
+
+        /*
+         * Mantém respostas das outras categorias.
+         */
+
+        const mergedAnswers = {
+
+            ...(oldDraft?.respostas || {}),
+
+            ...currentAnswers
+        };
+
+        const draft = {
+
+            data:
+                auditDateInput?.value ||
+                oldDraft?.data ||
+                "",
+
+            auditor:
+                auditorNameInput?.value ||
+                oldDraft?.auditor ||
+                "",
+
+            observacoes:
+                observationsInput?.value ||
+                oldDraft?.observacoes ||
+                "",
+
+            respostas:
+                mergedAnswers,
+
+            savedAt:
+                Date.now()
+        };
+
+        sessionStorage.setItem(
+            storageKey,
+            JSON.stringify(draft)
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "Não foi possível salvar o rascunho temporário:",
+            error
+        );
+    }
+}
+
+
+/* =========================================================
+   CARREGAR RASCUNHO
+========================================================= */
+
+function getSavedDraft() {
+
+    if (!currentUser) {
+        return null;
+    }
+
+    const storageKey =
+        getDraftStorageKey();
+
+    if (!storageKey) {
+        return null;
+    }
+
+    try {
+
+        const raw =
+            sessionStorage.getItem(
+                storageKey
+            );
+
+        if (!raw) {
+            return null;
+        }
+
+        const draft =
+            JSON.parse(
+                raw
+            );
+
+        if (!draft) {
+            return null;
+        }
+
+        /*
+         * Rascunho com mais de 24 horas
+         * é descartado.
+         */
+
+        if (
+            draft.savedAt &&
+            Date.now() -
+                Number(draft.savedAt) >
+                86400000
+        ) {
+
+            sessionStorage.removeItem(
+                storageKey
+            );
+
+            return null;
+        }
+
+        return draft;
+
+    } catch (error) {
+
+        console.warn(
+            "Erro ao ler rascunho:",
+            error
+        );
+
+        return null;
+    }
+}
+
+
+/* =========================================================
+   RESTAURAR RASCUNHO
+========================================================= */
+
+function restoreDraft() {
+
+    if (
+        !currentUser ||
+        isHistoricalAudit ||
+        !selectedCategory
+    ) {
+
+        return;
+    }
+
+    const draft =
+        getSavedDraft();
+
+    if (!draft) {
+        return;
+    }
+
+    /*
+     * DATA
+     */
+
+    if (
+        auditDateInput &&
+        draft.data
+    ) {
+
+        auditDateInput.value =
+            draft.data;
+    }
+
+    /*
+     * AUDITOR
+     */
+
+    if (
+        auditorNameInput &&
+        draft.auditor
+    ) {
+
+        auditorNameInput.value =
+            draft.auditor;
+    }
+
+    /*
+     * OBSERVAÇÕES
+     */
+
+    if (
+        observationsInput &&
+        draft.observacoes
+    ) {
+
+        observationsInput.value =
+            draft.observacoes;
+    }
+
+    /*
+     * RESPOSTAS
+     *
+     * O objeto possui respostas de todas
+     * as categorias, mas somente as perguntas
+     * atualmente renderizadas serão aplicadas.
+     */
+
+    restoreAnswers(
+        draft.respostas || {}
+    );
+
+    setAuditReadOnly(
+        false
+    );
+
+    updateScore();
+}
+
+
+/* =========================================================
+   LIMPAR RASCUNHO
+========================================================= */
+
+function clearDraft() {
+
+    if (!currentUser) {
+        return;
+    }
+
+    const storageKey =
+        getDraftStorageKey();
+
+    if (!storageKey) {
+        return;
+    }
+
+    try {
+
+        sessionStorage.removeItem(
+            storageKey
+        );
+
+    } catch (error) {
+
+        console.warn(
+            "Não foi possível limpar o rascunho:",
+            error
+        );
     }
 }
 
@@ -1842,6 +2728,11 @@ function clearAuditForm() {
 
     isHistoricalAudit = false;
 
+    clearDraft();
+
+    /*
+     * DATA
+     */
 
     if (auditDateInput) {
 
@@ -1851,13 +2742,15 @@ function clearAuditForm() {
             );
     }
 
-
     if (hiddenDatePicker) {
 
         hiddenDatePicker.value =
             getCurrentDateISO();
     }
 
+    /*
+     * AUDITOR
+     */
 
     if (auditorNameInput) {
 
@@ -1868,6 +2761,9 @@ function clearAuditForm() {
             false;
     }
 
+    /*
+     * OBSERVAÇÕES
+     */
 
     if (observationsInput) {
 
@@ -1878,13 +2774,28 @@ function clearAuditForm() {
             false;
     }
 
+    /*
+     * Se existe categoria,
+     * renderiza a categoria.
+     *
+     * Se não existe,
+     * mostra a tela inicial.
+     */
 
-    renderChecklist();
+    if (selectedCategory) {
+
+        renderChecklist();
+
+    } else {
+
+        showCategorySelection();
+    }
 
     updateScore();
 
-    setAuditReadOnly(false);
-
+    setAuditReadOnly(
+        false
+    );
 
     if (auditMessage) {
 
@@ -1913,6 +2824,15 @@ function validateAudit() {
         return false;
     }
 
+    if (!selectedCategory) {
+
+        showMessage(
+            "Selecione uma categoria antes de continuar.",
+            "error"
+        );
+
+        return false;
+    }
 
     if (!auditDateInput?.value) {
 
@@ -1924,12 +2844,10 @@ function validateAudit() {
         return false;
     }
 
-
     const isoDate =
         dateBRToISO(
             auditDateInput.value
         );
-
 
     if (!isoDate) {
 
@@ -1940,7 +2858,6 @@ function validateAudit() {
 
         return false;
     }
-
 
     if (
         !auditorNameInput?.value.trim()
@@ -1956,7 +2873,6 @@ function validateAudit() {
         return false;
     }
 
-
     if (
         auditQuestions.length === 0
     ) {
@@ -1969,14 +2885,12 @@ function validateAudit() {
         return false;
     }
 
-
     const scoreQuestions =
         auditQuestions.filter(
             (question) =>
                 question.tipoResposta ===
                 "sim_nao"
         );
-
 
     if (
         scoreQuestions.length === 0
@@ -1989,7 +2903,6 @@ function validateAudit() {
 
         return false;
     }
-
 
     return true;
 }
@@ -2011,11 +2924,9 @@ async function saveAudit() {
         return;
     }
 
-
     if (!validateAudit()) {
         return;
     }
-
 
     if (!currentUser) {
 
@@ -2026,7 +2937,6 @@ async function saveAudit() {
 
         return;
     }
-
 
     try {
 
@@ -2039,20 +2949,34 @@ async function saveAudit() {
                 "SALVANDO...";
         }
 
+        /*
+         * Antes de salvar, precisamos juntar
+         * todas as respostas do rascunho com
+         * a categoria atualmente visível.
+         */
 
-        const answers =
+        const draft =
+            getSavedDraft();
+
+        const currentAnswers =
             getCurrentAnswers();
 
+        const answers = {
+
+            ...(draft?.respostas || {}),
+
+            ...currentAnswers
+        };
 
         const result =
-            calculateScore();
-
+            calculateScoreFromAnswers(
+                answers
+            );
 
         const isoDate =
             dateBRToISO(
                 auditDateInput.value
             );
-
 
         const auditsReference =
             collection(
@@ -2061,7 +2985,6 @@ async function saveAudit() {
                 currentUser.uid,
                 "auditorias"
             );
-
 
         const auditData = {
 
@@ -2084,22 +3007,27 @@ async function saveAudit() {
                 result.total,
 
             observacoes:
-                observationsInput?.value.trim() || "",
+                observationsInput?.value.trim() ||
+                "",
 
             userId:
                 currentUser.uid,
 
             userEmail:
-                currentUser.email || "",
+                currentUser.email ||
+                "",
 
             nomeEmpresa:
-                companyData.nomeEmpresa || "",
+                companyData.nomeEmpresa ||
+                "",
 
             cnpj:
-                companyData.cnpj || "",
+                companyData.cnpj ||
+                "",
 
             endereco:
-                companyData.endereco || "",
+                companyData.endereco ||
+                "",
 
             respostas:
                 answers,
@@ -2108,13 +3036,11 @@ async function saveAudit() {
                 serverTimestamp()
         };
 
-
         const auditDocument =
             await addDoc(
                 auditsReference,
                 auditData
             );
-
 
         currentAudit = {
 
@@ -2124,22 +3050,19 @@ async function saveAudit() {
             ...auditData
         };
 
+        clearDraft();
 
-        /*
-         * Auditoria salva passa para consulta.
-         */
-        setAuditReadOnly(true);
-
+        setAuditReadOnly(
+            true
+        );
 
         await loadAuditHistory();
-
 
         if (auditHistory) {
 
             auditHistory.value =
                 auditDocument.id;
         }
-
 
         showMessage(
             "Auditoria salva com sucesso. Ela agora está disponível somente para consulta.",
@@ -2154,7 +3077,9 @@ async function saveAudit() {
         );
 
         showMessage(
-            getFirestoreErrorMessage(error),
+            getFirestoreErrorMessage(
+                error
+            ),
             "error"
         );
 
@@ -2178,12 +3103,14 @@ async function saveAudit() {
    ERROS FIRESTORE
 ========================================================= */
 
-function getFirestoreErrorMessage(error) {
+function getFirestoreErrorMessage(
+    error
+) {
 
     if (!error) {
+
         return "Erro ao salvar a auditoria.";
     }
-
 
     if (
         error.code ===
@@ -2195,7 +3122,6 @@ function getFirestoreErrorMessage(error) {
         );
     }
 
-
     if (
         error.code ===
         "unavailable"
@@ -2205,7 +3131,6 @@ function getFirestoreErrorMessage(error) {
             "Firebase temporariamente indisponível. Verifique sua conexão."
         );
     }
-
 
     if (
         error.code ===
@@ -2217,7 +3142,6 @@ function getFirestoreErrorMessage(error) {
         );
     }
 
-
     if (
         error.code ===
         "failed-precondition"
@@ -2227,7 +3151,6 @@ function getFirestoreErrorMessage(error) {
             "O Firebase solicitou um índice para esta consulta."
         );
     }
-
 
     return (
         "Erro ao salvar a auditoria no Firebase."
@@ -2245,9 +3168,9 @@ async function loadAuditHistory() {
         !auditHistory ||
         !currentUser
     ) {
+
         return;
     }
-
 
     try {
 
@@ -2257,7 +3180,6 @@ async function loadAuditHistory() {
             </option>
         `;
 
-
         const auditsReference =
             collection(
                 db,
@@ -2266,9 +3188,7 @@ async function loadAuditHistory() {
                 "auditorias"
             );
 
-
         let snapshot;
-
 
         try {
 
@@ -2300,9 +3220,7 @@ async function loadAuditHistory() {
                 );
         }
 
-
         const documents = [];
-
 
         snapshot.forEach(
             (documentSnapshot) => {
@@ -2312,7 +3230,6 @@ async function loadAuditHistory() {
                 );
             }
         );
-
 
         documents.sort(
             (a, b) => {
@@ -2330,13 +3247,11 @@ async function loadAuditHistory() {
             }
         );
 
-
         auditHistory.innerHTML = `
             <option value="">
                 Nova auditoria
             </option>
         `;
-
 
         documents
             .slice(0, 50)
@@ -2346,42 +3261,34 @@ async function loadAuditHistory() {
                     const data =
                         documentSnapshot.data();
 
-
                     const date =
                         formatDate(
                             data.data
                         );
 
-
                     const auditor =
                         data.auditor ||
                         "Sem responsável";
 
-
                     const score =
                         data.score ?? 0;
-
 
                     const option =
                         document.createElement(
                             "option"
                         );
 
-
                     option.value =
                         documentSnapshot.id;
 
-
                     option.textContent =
                         `${date} — ${auditor} — ${score}%`;
-
 
                     auditHistory.appendChild(
                         option
                     );
                 }
             );
-
 
         if (
             documents.length === 0
@@ -2423,7 +3330,9 @@ async function loadAuditHistory() {
    CARREGAR AUDITORIA ESPECÍFICA
 ========================================================= */
 
-async function loadAuditById(auditId) {
+async function loadAuditById(
+    auditId
+) {
 
     if (
         !auditId ||
@@ -2435,20 +3344,16 @@ async function loadAuditById(auditId) {
         return;
     }
 
-
     try {
 
-        /*
-         * Bloqueia imediatamente enquanto carrega.
-         */
-        setAuditReadOnly(true);
-
+        setAuditReadOnly(
+            true
+        );
 
         showMessage(
             "Carregando auditoria...",
             "info"
         );
-
 
         const auditReference =
             doc(
@@ -2459,12 +3364,10 @@ async function loadAuditById(auditId) {
                 auditId
             );
 
-
         const snapshot =
             await getDoc(
                 auditReference
             );
-
 
         if (!snapshot.exists()) {
 
@@ -2473,18 +3376,16 @@ async function loadAuditById(auditId) {
                 "error"
             );
 
+            setAuditReadOnly(
+                false
+            );
+
             return;
         }
-
 
         const data =
             snapshot.data();
 
-
-        /*
-         * ESTA É A AUDITORIA REAL QUE SERÁ USADA
-         * NA GERAÇÃO DO PDF.
-         */
         currentAudit = {
 
             id:
@@ -2493,14 +3394,13 @@ async function loadAuditById(auditId) {
             ...data
         };
 
-
         isHistoricalAudit =
             true;
-
 
         /*
          * DATA
          */
+
         if (auditDateInput) {
 
             auditDateInput.value =
@@ -2509,59 +3409,62 @@ async function loadAuditById(auditId) {
                 );
         }
 
-
         if (hiddenDatePicker) {
 
             hiddenDatePicker.value =
-                data.data || "";
+                data.data ||
+                "";
         }
-
 
         /*
          * AUDITOR
          */
+
         if (auditorNameInput) {
 
             auditorNameInput.value =
-                data.auditor || "";
+                data.auditor ||
+                "";
         }
-
 
         /*
          * OBSERVAÇÕES
          */
+
         if (observationsInput) {
 
             observationsInput.value =
-                data.observacoes || "";
+                data.observacoes ||
+                "";
         }
 
-
         /*
-         * CHECKLIST
+         * SEM CATEGORIA:
+         *
+         * Continua sem checklist.
+         *
+         * O usuário precisa clicar em uma aba.
          */
-        renderChecklist();
 
+        if (selectedCategory) {
 
-        /*
-         * RESPOSTAS
-         */
-        restoreAnswers(
-            data.respostas || {}
-        );
+            renderChecklist();
 
+            restoreAnswers(
+                data.respostas ||
+                {}
+            );
 
-        /*
-         * SCORE
-         */
+        } else {
+
+            showCategorySelection();
+        }
+
         updateScore();
 
-
-        /*
-         * BLOQUEIA NOVAMENTE
-         */
-        setAuditReadOnly(true);
-
+        setAuditReadOnly(
+            true
+        );
 
         showMessage(
             "Auditoria carregada somente para consulta.",
@@ -2587,21 +3490,37 @@ async function loadAuditById(auditId) {
    RESTAURAR RESPOSTAS
 ========================================================= */
 
-function restoreAnswers(answers) {
+function restoreAnswers(
+    answers
+) {
 
     if (!answers) {
         return;
     }
 
+    /*
+     * Só restaura perguntas da categoria
+     * atualmente aberta.
+     */
 
-    Object.entries(answers)
-        .forEach(
-            ([questionId, data]) => {
+    Object.entries(
+        answers
+    )
+    .forEach(
+        ([questionId, data]) => {
 
-                if (!data) {
-                    return;
-                }
+            if (!data) {
+                return;
+            }
 
+            /*
+             * SIM / NÃO
+             */
+
+            if (
+                data.tipoResposta ===
+                "sim_nao"
+            ) {
 
                 const question =
                     auditQuestions.find(
@@ -2610,134 +3529,174 @@ function restoreAnswers(answers) {
                             questionId
                     );
 
+                if (!question) {
+                    return;
+                }
+
+                const questionCategory =
+                    normalizeCategory(
+                        question.categoria
+                    );
+
+                if (
+                    questionCategory !==
+                    selectedCategory
+                ) {
+
+                    return;
+                }
+
+                const answer =
+                    data.resposta;
+
+                if (
+                    answer === "SIM" ||
+                    answer === "NAO"
+                ) {
+
+                    const selector =
+                        `.answer-checkbox[data-question-id="${escapeSelector(questionId)}"][data-answer="${answer}"]`;
+
+                    const checkbox =
+                        document.querySelector(
+                            selector
+                        );
+
+                    if (checkbox) {
+
+                        checkbox.checked =
+                            true;
+                    }
+                }
+
+                return;
+            }
+
+            /*
+             * TEXTO
+             */
+
+            if (
+                data.tipoResposta ===
+                "texto"
+            ) {
+
+                const question =
+                    auditQuestions.find(
+                        (item) =>
+                            item.id ===
+                            questionId
+                    );
 
                 if (!question) {
                     return;
                 }
 
-
-                /*
-                 * SIM / NÃO
-                 */
                 if (
-                    question.tipoResposta ===
-                    "sim_nao"
+                    normalizeCategory(
+                        question.categoria
+                    ) !==
+                    selectedCategory
                 ) {
 
-                    const answer =
-                        data.resposta;
-
-
-                    if (
-                        answer === "SIM" ||
-                        answer === "NAO"
-                    ) {
-
-                        const selector =
-                            `.answer-checkbox[data-question-id="${escapeSelector(questionId)}"][data-answer="${answer}"]`;
-
-
-                        const checkbox =
-                            document.querySelector(
-                                selector
-                            );
-
-
-                        if (checkbox) {
-
-                            checkbox.checked =
-                                true;
-                        }
-                    }
+                    return;
                 }
 
+                const input =
+                    document.querySelector(
+                        `.question-text-input[data-question-id="${escapeSelector(questionId)}"]`
+                    );
 
-                /*
-                 * TEXTO
-                 */
-                if (
-                    question.tipoResposta ===
-                    "texto"
-                ) {
+                if (input) {
 
-                    const input =
-                        document.querySelector(
-                            `.question-text-input[data-question-id="${escapeSelector(questionId)}"]`
-                        );
-
-
-                    if (input) {
-
-                        input.value =
-                            data.resposta || "";
-                    }
-                }
-
-
-                /*
-                 * IMAGEM
-                 */
-                if (
-                    question.tipoResposta ===
-                    "imagem64"
-                ) {
-
-                    const image =
-                        data.imagemBase64 ||
+                    input.value =
                         data.resposta ||
                         "";
+                }
 
+                return;
+            }
 
-                    if (!image) {
-                        return;
-                    }
+            /*
+             * IMAGEM
+             */
 
+            if (
+                data.tipoResposta ===
+                "imagem64"
+            ) {
 
-                    const input =
-                        document.querySelector(
-                            `.question-image-input[data-question-id="${escapeSelector(questionId)}"]`
-                        );
+                const question =
+                    auditQuestions.find(
+                        (item) =>
+                            item.id ===
+                            questionId
+                    );
 
+                if (!question) {
+                    return;
+                }
 
-                    const preview =
-                        document.querySelector(
-                            `[data-preview-id="${escapeSelector(questionId)}"]`
-                        );
+                if (
+                    normalizeCategory(
+                        question.categoria
+                    ) !==
+                    selectedCategory
+                ) {
 
+                    return;
+                }
 
-                    if (input) {
+                const image =
+                    data.imagemBase64 ||
+                    data.resposta ||
+                    "";
 
-                        input.dataset.base64 =
-                            image;
-                    }
+                if (!image) {
+                    return;
+                }
 
+                const input =
+                    document.querySelector(
+                        `.question-image-input[data-question-id="${escapeSelector(questionId)}"]`
+                    );
 
-                    if (preview) {
+                const preview =
+                    document.querySelector(
+                        `[data-preview-id="${escapeSelector(questionId)}"]`
+                    );
 
-                        preview.innerHTML = `
+                if (input) {
 
-                            <div class="image-preview-item">
+                    input.dataset.base64 =
+                        image;
+                }
 
-                                <img
-                                    src="${escapeHtml(image)}"
-                                    alt="Imagem da auditoria"
-                                >
+                if (preview) {
 
-                                <button
-                                    type="button"
-                                    class="remove-image-button"
-                                    disabled
-                                >
-                                    REMOVER
-                                </button>
+                    preview.innerHTML = `
 
-                            </div>
-                        `;
-                    }
+                        <div class="image-preview-item">
+
+                            <img
+                                src="${escapeHtml(image)}"
+                                alt="Imagem da auditoria"
+                            >
+
+                            <button
+                                type="button"
+                                class="remove-image-button"
+                                disabled
+                            >
+                                REMOVER
+                            </button>
+
+                        </div>
+                    `;
                 }
             }
-        );
-
+        }
+    );
 
     setAuditReadOnly(
         isHistoricalAudit
@@ -2759,7 +3718,6 @@ function waitForJsPdf(
             const start =
                 Date.now();
 
-
             const timer =
                 setInterval(
                     () => {
@@ -2770,7 +3728,9 @@ function waitForJsPdf(
                             "function"
                         ) {
 
-                            clearInterval(timer);
+                            clearInterval(
+                                timer
+                            );
 
                             resolve(
                                 window.jspdf.jsPDF
@@ -2779,15 +3739,19 @@ function waitForJsPdf(
                             return;
                         }
 
-
                         if (
-                            Date.now() - start >=
+                            Date.now() -
+                            start >=
                             timeout
                         ) {
 
-                            clearInterval(timer);
+                            clearInterval(
+                                timer
+                            );
 
-                            resolve(null);
+                            resolve(
+                                null
+                            );
                         }
 
                     },
@@ -2799,7 +3763,7 @@ function waitForJsPdf(
 
 
 /* =========================================================
-   CARREGAR SCRIPT EXTERNO
+   CARREGAR SCRIPT
 ========================================================= */
 
 function loadScript(url) {
@@ -2812,7 +3776,6 @@ function loadScript(url) {
                     "script"
                 );
 
-
             script.src =
                 url;
 
@@ -2820,10 +3783,7 @@ function loadScript(url) {
                 true;
 
             script.onload =
-                () => {
-
-                    resolve();
-                };
+                () => resolve();
 
             script.onerror =
                 () => {
@@ -2834,7 +3794,6 @@ function loadScript(url) {
                         )
                     );
                 };
-
 
             document.head.appendChild(
                 script
@@ -2850,9 +3809,6 @@ function loadScript(url) {
 
 async function ensureJsPdf() {
 
-    /*
-     * 1. Já carregado.
-     */
     if (
         window.jspdf &&
         typeof window.jspdf.jsPDF ===
@@ -2862,35 +3818,23 @@ async function ensureJsPdf() {
         return window.jspdf.jsPDF;
     }
 
-
-    /*
-     * Evita duas cargas simultâneas.
-     */
     if (pdfLibraryPromise) {
 
         return await pdfLibraryPromise;
     }
 
-
     pdfLibraryPromise =
         (async () => {
 
-            /*
-             * 2. Dá alguns segundos para o script
-             * que já está no HTML terminar de carregar.
-             */
             const existing =
-                await waitForJsPdf(4000);
-
+                await waitForJsPdf(
+                    4000
+                );
 
             if (existing) {
                 return existing;
             }
 
-
-            /*
-             * 3. Primeiro CDN.
-             */
             const cdnList = [
 
                 "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js",
@@ -2898,17 +3842,12 @@ async function ensureJsPdf() {
                 "https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js"
             ];
 
-
             for (
                 const url of cdnList
             ) {
 
                 try {
 
-                    /*
-                     * Não adiciona novamente o mesmo
-                     * script do HTML.
-                     */
                     const alreadyExists =
                         Array.from(
                             document.scripts
@@ -2918,7 +3857,6 @@ async function ensureJsPdf() {
                                 url
                         );
 
-
                     if (!alreadyExists) {
 
                         await loadScript(
@@ -2926,12 +3864,10 @@ async function ensureJsPdf() {
                         );
                     }
 
-
                     const loaded =
                         await waitForJsPdf(
                             3000
                         );
-
 
                     if (loaded) {
 
@@ -2948,13 +3884,11 @@ async function ensureJsPdf() {
                 }
             }
 
-
             throw new Error(
                 "Não foi possível carregar a biblioteca jsPDF."
             );
 
         })();
-
 
     try {
 
@@ -2969,19 +3903,10 @@ async function ensureJsPdf() {
 
 
 /* =========================================================
-   OBTER DADOS PARA PDF
+   DADOS PARA PDF
 ========================================================= */
 
 function getAuditDataForPdf() {
-
-    /*
-     * =====================================================
-     * AUDITORIA HISTÓRICA
-     *
-     * Aqui usamos diretamente o objeto carregado
-     * do Firebase.
-     * =====================================================
-     */
 
     if (
         isHistoricalAudit &&
@@ -2991,10 +3916,12 @@ function getAuditDataForPdf() {
         return {
 
             data:
-                currentAudit.data || "",
+                currentAudit.data ||
+                "",
 
             auditor:
-                currentAudit.auditor || "",
+                currentAudit.auditor ||
+                "",
 
             score:
                 Number(
@@ -3017,7 +3944,8 @@ function getAuditDataForPdf() {
                 ),
 
             observacoes:
-                currentAudit.observacoes || "",
+                currentAudit.observacoes ||
+                "",
 
             nomeEmpresa:
                 currentAudit.nomeEmpresa ||
@@ -3040,30 +3968,37 @@ function getAuditDataForPdf() {
         };
     }
 
-
     /*
-     * =====================================================
-     * NOVA AUDITORIA
+     * Nova auditoria:
      *
-     * Aqui usamos o formulário atual.
-     * =====================================================
+     * Junta as respostas atuais com o rascunho
+     * das outras categorias.
      */
 
-    const respostas =
+    const draft =
+        getSavedDraft();
+
+    const currentAnswers =
         getCurrentAnswers();
 
+    const respostas = {
+
+        ...(draft?.respostas || {}),
+
+        ...currentAnswers
+    };
 
     const result =
         calculateScoreFromAnswers(
             respostas
         );
 
-
     return {
 
         data:
             dateBRToISO(
-                auditDateInput?.value || ""
+                auditDateInput?.value ||
+                ""
             ),
 
         auditor:
@@ -3109,18 +4044,9 @@ function getAuditDataForPdf() {
 
 async function generatePdf() {
 
-    /*
-     * Guardamos a auditoria ANTES de iniciar o processo.
-     * Isso evita qualquer alteração durante a geração.
-     */
     const auditForPdf =
         getAuditDataForPdf();
 
-
-    /*
-     * Bloqueia somente o botão.
-     * O restante da auditoria continua intacto.
-     */
     if (generatePdfButton) {
 
         generatePdfButton.disabled =
@@ -3130,7 +4056,6 @@ async function generatePdf() {
             "GERANDO PDF...";
     }
 
-
     try {
 
         showMessage(
@@ -3138,19 +4063,12 @@ async function generatePdf() {
             "info"
         );
 
-
-        /*
-         * =================================================
-         * CARREGA JSPDF
-         * =================================================
-         */
-
         const jsPDF =
             await ensureJsPdf();
 
-
         if (
-            typeof jsPDF !== "function"
+            typeof jsPDF !==
+            "function"
         ) {
 
             throw new Error(
@@ -3158,16 +4076,8 @@ async function generatePdf() {
             );
         }
 
-
-        /*
-         * =================================================
-         * DATA
-         * =================================================
-         */
-
         const dateISO =
             auditForPdf.data;
-
 
         if (!dateISO) {
 
@@ -3176,29 +4086,14 @@ async function generatePdf() {
             );
         }
 
-
         const dateBR =
             formatDate(
                 dateISO
             );
 
-
-        /*
-         * =================================================
-         * RESPOSTAS
-         * =================================================
-         */
-
         const answers =
             auditForPdf.respostas ||
             {};
-
-
-        /*
-         * =================================================
-         * CRIAR PDF
-         * =================================================
-         */
 
         const pdf =
             new jsPDF({
@@ -3213,20 +4108,13 @@ async function generatePdf() {
                     "a4"
             });
 
-
         const pageWidth =
             pdf.internal.pageSize.getWidth();
 
         const pageHeight =
             pdf.internal.pageSize.getHeight();
 
-
         let y = 18;
-
-
-        /* =================================================
-           NOVA PÁGINA
-        ================================================= */
 
         function ensureSpace(
             requiredHeight = 20
@@ -3243,17 +4131,13 @@ async function generatePdf() {
             }
         }
 
-
-        /* =================================================
-           TEXTO QUEBRADO
-        ================================================= */
-
         function writeWrapped(
             text,
             x,
             fontSize = 10,
             lineHeight = 5,
-            maxWidth = pageWidth - 40
+            maxWidth =
+                pageWidth - 40
         ) {
 
             const safeText =
@@ -3261,18 +4145,15 @@ async function generatePdf() {
                     text || ""
                 );
 
-
             pdf.setFontSize(
                 fontSize
             );
-
 
             const lines =
                 pdf.splitTextToSize(
                     safeText,
                     maxWidth
                 );
-
 
             lines.forEach(
                 (line) => {
@@ -3292,14 +4173,12 @@ async function generatePdf() {
                 }
             );
 
-
             return lines.length;
         }
 
-
-        /* =================================================
-           CABEÇALHO
-        ================================================= */
+        /*
+         * CABEÇALHO
+         */
 
         pdf.setFont(
             undefined,
@@ -3318,7 +4197,6 @@ async function generatePdf() {
 
         y += 9;
 
-
         pdf.setFontSize(
             14
         );
@@ -3331,16 +4209,14 @@ async function generatePdf() {
 
         y += 10;
 
-
         pdf.setFont(
             undefined,
             "normal"
         );
 
-
-        /* =================================================
-           EMPRESA
-        ================================================= */
+        /*
+         * EMPRESA
+         */
 
         if (
             auditForPdf.nomeEmpresa
@@ -3354,7 +4230,6 @@ async function generatePdf() {
             );
         }
 
-
         if (
             auditForPdf.cnpj
         ) {
@@ -3366,7 +4241,6 @@ async function generatePdf() {
                 5
             );
         }
-
 
         if (
             auditForPdf.endereco
@@ -3380,9 +4254,7 @@ async function generatePdf() {
             );
         }
 
-
         y += 2;
-
 
         writeWrapped(
             `Data da auditoria: ${dateBR}`,
@@ -3391,7 +4263,6 @@ async function generatePdf() {
             5
         );
 
-
         writeWrapped(
             `Auditor / Responsável: ${auditForPdf.auditor || "Não informado"}`,
             20,
@@ -3399,13 +4270,11 @@ async function generatePdf() {
             5
         );
 
-
         y += 4;
 
-
-        /* =================================================
-           STATUS
-        ================================================= */
+        /*
+         * STATUS
+         */
 
         pdf.setFont(
             undefined,
@@ -3416,7 +4285,6 @@ async function generatePdf() {
             10
         );
 
-
         pdf.text(
             isHistoricalAudit
                 ? "STATUS: AUDITORIA REALIZADA"
@@ -3425,13 +4293,11 @@ async function generatePdf() {
             y
         );
 
-
         y += 8;
 
-
-        /* =================================================
-           RESULTADO
-        ================================================= */
+        /*
+         * RESULTADO
+         */
 
         pdf.setFontSize(
             14
@@ -3445,7 +4311,6 @@ async function generatePdf() {
 
         y += 6;
 
-
         pdf.setFont(
             undefined,
             "normal"
@@ -3455,16 +4320,13 @@ async function generatePdf() {
             10
         );
 
-
         pdf.text(
             `SIM: ${auditForPdf.yesCount}    NÃO: ${auditForPdf.noCount}    TOTAL: ${auditForPdf.totalCount}`,
             20,
             y
         );
 
-
         y += 8;
-
 
         pdf.line(
             20,
@@ -3473,13 +4335,13 @@ async function generatePdf() {
             y
         );
 
-
         y += 8;
 
+        /*
+         * TODAS AS PERGUNTAS
+         */
 
-        /* =================================================
-           PERGUNTAS
-        ================================================= */
+        let pdfLastCategory = "";
 
         for (
             let index = 0;
@@ -3490,20 +4352,60 @@ async function generatePdf() {
             const question =
                 auditQuestions[index];
 
-
             const answerData =
-                answers?.[question.id] ||
+                answers?.[
+                    question.id
+                ] ||
                 {};
 
+            const questionCategory =
+                normalizeCategory(
+                    question.categoria
+                );
+
+            /*
+             * CATEGORIA
+             */
+
+            if (
+                questionCategory !==
+                pdfLastCategory
+            ) {
+
+                ensureSpace(
+                    15
+                );
+
+                pdf.setFont(
+                    undefined,
+                    "bold"
+                );
+
+                pdf.setFontSize(
+                    12
+                );
+
+                pdf.text(
+                    question.categoria ||
+                    "SEM CATEGORIA",
+                    20,
+                    y
+                );
+
+                y += 7;
+
+                pdfLastCategory =
+                    questionCategory;
+            }
+
+            /*
+             * PERGUNTA
+             */
 
             ensureSpace(
                 25
             );
 
-
-            /*
-             * PERGUNTA
-             */
             pdf.setFont(
                 undefined,
                 "bold"
@@ -3513,13 +4415,11 @@ async function generatePdf() {
                 10
             );
 
-
             const questionLines =
                 pdf.splitTextToSize(
                     `${index + 1}. ${question.pergunta}`,
                     pageWidth - 40
                 );
-
 
             questionLines.forEach(
                 (line) => {
@@ -3538,19 +4438,17 @@ async function generatePdf() {
                 }
             );
 
-
             /*
              * RESPOSTA
              */
+
             pdf.setFont(
                 undefined,
                 "normal"
             );
 
-
             let answerText =
                 "NÃO RESPONDIDO";
-
 
             if (
                 question.tipoResposta ===
@@ -3575,7 +4473,6 @@ async function generatePdf() {
                 }
             }
 
-
             if (
                 question.tipoResposta ===
                 "texto"
@@ -3585,7 +4482,6 @@ async function generatePdf() {
                     answerData.resposta ||
                     "Não informado";
             }
-
 
             if (
                 question.tipoResposta ===
@@ -3598,13 +4494,11 @@ async function generatePdf() {
                         : "Nenhuma imagem anexada";
             }
 
-
             const answerLines =
                 pdf.splitTextToSize(
                     `Resposta: ${answerText}`,
                     pageWidth - 50
                 );
-
 
             answerLines.forEach(
                 (line) => {
@@ -3623,13 +4517,11 @@ async function generatePdf() {
                 }
             );
 
-
             y += 3;
 
-
-            /* =================================================
-               IMAGEM
-            ================================================= */
+            /*
+             * IMAGEM
+             */
 
             if (
                 question.tipoResposta ===
@@ -3645,11 +4537,9 @@ async function generatePdf() {
                     const imageHeight =
                         60;
 
-
                     ensureSpace(
                         imageHeight + 10
                     );
-
 
                     pdf.addImage(
                         answerData.imagemBase64,
@@ -3659,7 +4549,6 @@ async function generatePdf() {
                         imageWidth,
                         imageHeight
                     );
-
 
                     y +=
                         imageHeight + 8;
@@ -3671,16 +4560,13 @@ async function generatePdf() {
                         imageError
                     );
 
-
                     ensureSpace(
                         8
                     );
 
-
                     pdf.setFontSize(
                         9
                     );
-
 
                     pdf.text(
                         "Imagem não pôde ser inserida no PDF.",
@@ -3688,27 +4574,22 @@ async function generatePdf() {
                         y
                     );
 
-
                     y += 6;
                 }
             }
 
-
             y += 2;
         }
 
-
-        /* =================================================
-           OBSERVAÇÕES
-        ================================================= */
+        /*
+         * OBSERVAÇÕES
+         */
 
         ensureSpace(
             30
         );
 
-
         y += 5;
-
 
         pdf.setFont(
             undefined,
@@ -3719,16 +4600,13 @@ async function generatePdf() {
             12
         );
 
-
         pdf.text(
             "OBSERVAÇÕES",
             20,
             y
         );
 
-
         y += 7;
-
 
         pdf.setFont(
             undefined,
@@ -3739,11 +4617,9 @@ async function generatePdf() {
             10
         );
 
-
         const observations =
             auditForPdf.observacoes ||
             "Nenhuma observação registrada.";
-
 
         writeWrapped(
             observations,
@@ -3753,14 +4629,12 @@ async function generatePdf() {
             pageWidth - 40
         );
 
-
-        /* =================================================
-           RODAPÉ
-        ================================================= */
+        /*
+         * RODAPÉ
+         */
 
         const totalPages =
             pdf.internal.getNumberOfPages();
-
 
         for (
             let page = 1;
@@ -3772,7 +4646,6 @@ async function generatePdf() {
                 page
             );
 
-
             pdf.setFont(
                 undefined,
                 "normal"
@@ -3782,7 +4655,6 @@ async function generatePdf() {
                 8
             );
 
-
             pdf.text(
                 `PostoCheck - Auditoria - Página ${page} de ${totalPages}`,
                 20,
@@ -3790,10 +4662,9 @@ async function generatePdf() {
             );
         }
 
-
-        /* =================================================
-           NOME DO ARQUIVO
-        ================================================= */
+        /*
+         * NOME DO ARQUIVO
+         */
 
         const safeDate =
             (
@@ -3804,7 +4675,6 @@ async function generatePdf() {
                 "/",
                 "-"
             );
-
 
         const safeAuditor =
             (
@@ -3821,25 +4691,17 @@ async function generatePdf() {
                 "-"
             );
 
-
         const fileName =
             `PostoCheck-Auditoria-${safeDate}-${safeAuditor || "auditoria"}.pdf`;
 
-
-        /* =================================================
-           GERAR ARQUIVO NO CELULAR
-        ================================================= */
-
         /*
-         * Primeiro usamos Blob.
-         * Isso é mais confiável em navegadores móveis
-         * do que depender somente do pdf.save().
+         * DOWNLOAD
          */
+
         const pdfBlob =
             pdf.output(
                 "blob"
             );
-
 
         if (
             !pdfBlob ||
@@ -3851,23 +4713,15 @@ async function generatePdf() {
             );
         }
 
-
         const blobUrl =
             URL.createObjectURL(
                 pdfBlob
             );
 
-
-        /*
-         * Cria um link temporário.
-         *
-         * Android/Chrome normalmente fará o download.
-         */
         const downloadLink =
             document.createElement(
                 "a"
             );
-
 
         downloadLink.href =
             blobUrl;
@@ -3881,25 +4735,15 @@ async function generatePdf() {
         downloadLink.rel =
             "noopener";
 
-
         downloadLink.style.display =
             "none";
-
 
         document.body.appendChild(
             downloadLink
         );
 
-
-        /*
-         * Tenta o download.
-         */
         downloadLink.click();
 
-
-        /*
-         * Remove o elemento.
-         */
         setTimeout(
             () => {
 
@@ -3909,42 +4753,6 @@ async function generatePdf() {
             100
         );
 
-
-        /*
-         * Também disponibiliza o PDF para
-         * navegadores móveis que não respeitam
-         * o atributo download.
-         */
-        setTimeout(
-            () => {
-
-                try {
-
-                    /*
-                     * Não abrimos automaticamente em todos
-                     * os aparelhos porque alguns navegadores
-                     * bloqueiam nova aba depois de operações
-                     * assíncronas.
-                     *
-                     * O downloadLink já foi acionado acima.
-                     */
-
-                } catch (error) {
-
-                    console.warn(
-                        "Fallback do PDF:",
-                        error
-                    );
-                }
-
-            },
-            300
-        );
-
-
-        /*
-         * Libera a memória depois de alguns segundos.
-         */
         setTimeout(
             () => {
 
@@ -3955,7 +4763,6 @@ async function generatePdf() {
             },
             60000
         );
-
 
         showMessage(
             "PDF gerado com sucesso.",
@@ -3969,14 +4776,13 @@ async function generatePdf() {
             error
         );
 
-
         let message =
             "Não foi possível gerar o PDF.";
 
-
         if (
             String(
-                error?.message || ""
+                error?.message ||
+                ""
             )
             .toLowerCase()
             .includes(
@@ -3988,7 +4794,6 @@ async function generatePdf() {
                 "Não foi possível carregar a biblioteca do PDF. Verifique a internet do celular e tente novamente.";
         }
 
-
         showMessage(
             message,
             "error"
@@ -3996,10 +4801,6 @@ async function generatePdf() {
 
     } finally {
 
-        /*
-         * NUNCA deixa o botão preso em
-         * "GERANDO PDF".
-         */
         if (generatePdfButton) {
 
             generatePdfButton.disabled =
@@ -4025,16 +4826,22 @@ function setupEvents() {
     eventsConfigured =
         true;
 
+    /*
+     * ABAS
+     */
+
+    setupCategoryTabs();
 
     /*
      * CALENDÁRIO
      */
-    setupDatePicker();
 
+    setupDatePicker();
 
     /*
      * PDF
      */
+
     if (generatePdfButton) {
 
         generatePdfButton.addEventListener(
@@ -4043,10 +4850,10 @@ function setupEvents() {
         );
     }
 
-
     /*
      * SALVAR
      */
+
     if (saveAuditButton) {
 
         saveAuditButton.addEventListener(
@@ -4055,10 +4862,10 @@ function setupEvents() {
         );
     }
 
-
     /*
      * HISTÓRICO
      */
+
     if (auditHistory) {
 
         auditHistory.addEventListener(
@@ -4068,10 +4875,10 @@ function setupEvents() {
                 const auditId =
                     auditHistory.value;
 
-
                 /*
-                 * "Nova auditoria"
+                 * NOVA AUDITORIA
                  */
+
                 if (!auditId) {
 
                     clearAuditForm();
@@ -4079,14 +4886,38 @@ function setupEvents() {
                     return;
                 }
 
-
                 /*
-                 * Auditoria já salva.
+                 * AUDITORIA HISTÓRICA
                  */
+
                 await loadAuditById(
                     auditId
                 );
             }
+        );
+    }
+
+    /*
+     * AUDITOR
+     */
+
+    if (auditorNameInput) {
+
+        auditorNameInput.addEventListener(
+            "input",
+            saveDraft
+        );
+    }
+
+    /*
+     * OBSERVAÇÕES
+     */
+
+    if (observationsInput) {
+
+        observationsInput.addEventListener(
+            "input",
+            saveDraft
         );
     }
 }
@@ -4108,45 +4939,83 @@ onAuthStateChanged(
             return;
         }
 
-
         currentUser =
             user;
 
+        /*
+         * =================================================
+         * PRIMEIRO PASSO:
+         *
+         * LER CATEGORIA DA URL.
+         *
+         * SEM categoria:
+         * NÃO carrega checklist.
+         * =================================================
+         */
+
+        initializeCategoryFromUrl();
+
+        /*
+         * EVENTOS
+         */
 
         setupEvents();
 
-
         /*
-         * Começa como nova auditoria.
+         * NOVA AUDITORIA
          */
+
         isHistoricalAudit =
             false;
 
+        currentAudit =
+            null;
 
         updateAuditStatus();
 
-
         /*
-         * Empresa.
+         * EMPRESA
          */
+
         await loadCompanyProfile();
 
+        /*
+         * PERGUNTAS
+         *
+         * IMPORTANTE:
+         *
+         * loadAuditQuestions() agora verifica
+         * selectedCategory.
+         *
+         * Sem categoria:
+         * não busca/renderiza checklist.
+         *
+         * Com categoria:
+         * carrega normalmente.
+         */
+
+        if (selectedCategory) {
+
+            await loadAuditQuestions();
+
+        } else {
+
+            showCategorySelection();
+        }
 
         /*
-         * Perguntas.
+         * HISTÓRICO
+         *
+         * O histórico pode carregar mesmo
+         * sem uma categoria selecionada.
          */
-        await loadAuditQuestions();
 
-
-        /*
-         * Histórico.
-         */
         await loadAuditHistory();
 
-
         /*
-         * Data.
+         * DATA
          */
+
         if (
             auditDateInput &&
             !auditDateInput.value
@@ -4158,7 +5027,6 @@ onAuthStateChanged(
                 );
         }
 
-
         if (
             hiddenDatePicker &&
             !hiddenDatePicker.value
@@ -4168,13 +5036,32 @@ onAuthStateChanged(
                 getCurrentDateISO();
         }
 
-
         /*
-         * Formulário começa liberado.
+         * FORMULÁRIO
+         *
+         * Se não existe categoria,
+         * ainda não há checklist para editar.
          */
+
         setAuditReadOnly(
             false
         );
+
+        /*
+         * VISUAL DAS ABAS
+         */
+
+        updateCategoryTabs();
+
+        updateSelectedCategoryLabel();
+
+        /*
+         * LOG
+         */
+
+        console.log(
+            "PostoCheck - categoria atual:",
+            selectedCategory || "NENHUMA"
+        );
     }
 );
-

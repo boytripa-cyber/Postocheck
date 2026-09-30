@@ -1,7 +1,7 @@
 /* =========================================================
    POSTOCHECK
    AUDITORIAS DO POSTO
-   CSS COMPLETO
+   CSS COMPLETO E AJUSTADO
 ========================================================= */
 
 
@@ -47,8 +47,23 @@ body {
 }
 
 
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+
+button,
+a,
+label {
+    -webkit-tap-highlight-color: transparent;
+}
+
+
 /* =========================================================
-   CABEÇALHO
+   CABEÇALHO / ABAS DE NAVEGAÇÃO
 ========================================================= */
 
 .header {
@@ -63,6 +78,10 @@ body {
         #f5c400;
 
     flex-shrink: 0;
+
+    position: relative;
+
+    z-index: 100;
 }
 
 
@@ -83,22 +102,56 @@ body {
 
     align-items: center;
 
-    justify-content: space-between;
+    gap: 15px;
 }
 
 
-.header-button {
-    min-width:
-        clamp(
-            75px,
-            10vw,
-            110px
-        );
+/* =========================================================
+   ÁREA DAS ABAS
+========================================================= */
 
-    min-height: 40px;
+.header-navigation {
+    flex: 1;
+
+    min-width: 0;
+
+    display: flex;
+
+    align-items: stretch;
+
+    gap: 6px;
+
+    overflow-x: auto;
+
+    overflow-y: hidden;
+
+    white-space: nowrap;
+
+    scrollbar-width: none;
+}
+
+
+.header-navigation::-webkit-scrollbar {
+    display: none;
+}
+
+
+/* =========================================================
+   TODAS AS ABAS
+========================================================= */
+
+.header-button {
+    flex: 1 1 0;
+
+    min-width: 90px;
+
+    max-width: 150px;
+
+    min-height: 42px;
 
     padding:
-        8px 18px;
+        8px
+        14px;
 
     display: flex;
 
@@ -110,50 +163,146 @@ body {
         2px solid
         #f5c400;
 
-    border-radius: 7px;
+    border-radius:
+        7px
+        7px
+        0
+        0;
 
+    background: #000000;
+
+    color: #f5c400;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 13px;
+
+    font-weight: 900;
+
+    letter-spacing: 0.3px;
+
+    text-decoration: none;
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    user-select: none;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+/* =========================================================
+   HOVER DAS ABAS
+========================================================= */
+
+.header-button:hover {
     background: #f5c400;
 
     color: #000000;
 
-    font-size: 14px;
-
-    font-weight: 900;
-
-    text-decoration: none;
-
-    transition:
-        background 0.2s ease,
-        transform 0.15s ease;
-}
-
-
-.header-button:hover {
-    background: #ffffff;
-}
-
-
-.header-button:active {
     transform:
-        translateY(2px);
+        translateY(-2px);
+
+    box-shadow:
+        0
+        -2px
+        0
+        #f5c400;
 }
 
+
+/* =========================================================
+   ABA ATIVA
+========================================================= */
+
+.header-button.active,
+.header-button[aria-current="page"] {
+    background: #f5c400;
+
+    color: #000000;
+
+    border-color:
+        #f5c400;
+
+    box-shadow:
+        0
+        -2px
+        0
+        #f5c400;
+}
+
+
+/* Evita que a aba ativa fique estranha no toque */
+.header-button.active:hover,
+.header-button[aria-current="page"]:hover {
+    background: #f5c400;
+
+    color: #000000;
+}
+
+
+/* =========================================================
+   FOCO PELO TECLADO
+========================================================= */
+
+.header-button:focus-visible {
+    outline:
+        3px solid
+        #ffffff;
+
+    outline-offset: 2px;
+}
+
+
+/* =========================================================
+   TÍTULO DO CABEÇALHO
+========================================================= */
 
 .header-title {
+    flex: 0 0 auto;
+
+    min-height: 42px;
+
+    padding:
+        0
+        8px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
     color: #ffffff;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 
     font-size:
         clamp(
-            13px,
+            16px,
             2vw,
-            17px
+            22px
         );
 
     font-weight: 900;
 
     letter-spacing: 1px;
 
-    text-align: right;
+    white-space: nowrap;
 }
 
 
@@ -749,6 +898,53 @@ body {
 
 
 /* =========================================================
+   STATUS DA AUDITORIA
+========================================================= */
+
+.audit-status {
+    width: 100%;
+
+    margin-bottom: 18px;
+
+    padding:
+        12px
+        15px;
+
+    border:
+        2px solid
+        #000000;
+
+    border-radius: 8px;
+
+    background: #f5c400;
+
+    color: #000000;
+
+    font-size: 13px;
+
+    font-weight: 900;
+
+    text-align: center;
+
+    line-height: 1.4;
+}
+
+
+.audit-status.editable {
+    background: #f5c400;
+
+    color: #000000;
+}
+
+
+.audit-status.readonly {
+    background: #eeeeee;
+
+    color: #555555;
+}
+
+
+/* =========================================================
    FORMULÁRIO
 ========================================================= */
 
@@ -885,7 +1081,8 @@ body {
 
     height: 38px;
 
-    transform: translateY(-50%);
+    transform:
+        translateY(-50%);
 
     display: flex;
 
@@ -981,6 +1178,10 @@ body {
 }
 
 
+/* =========================================================
+   CATEGORIA DO CHECKLIST
+========================================================= */
+
 .checklist-category {
     width: 100%;
 
@@ -1005,8 +1206,75 @@ body {
     text-transform: uppercase;
 
     letter-spacing: 0.5px;
+
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
 }
 
+
+/* =========================================================
+   CATEGORIA OCULTA
+   IMPORTANTE PARA AS ABAS
+========================================================= */
+
+.category-hidden {
+    display: none !important;
+}
+
+
+/*
+   O JavaScript mantém todas as perguntas no DOM.
+   Apenas as categorias que não estão selecionadas
+   ficam visualmente ocultas.
+
+   Isso permite trocar entre:
+   AMBIENTAL
+   BOMBAS
+   DOCUMENTAL
+
+   sem perder respostas já preenchidas.
+*/
+
+.checklist-question.category-hidden {
+    display: none !important;
+}
+
+
+/* =========================================================
+   CATEGORIA ATIVA
+========================================================= */
+
+.checklist-category:not(.category-hidden) {
+    animation:
+        categoryAppear
+        0.18s
+        ease-out;
+}
+
+
+@keyframes categoryAppear {
+
+    from {
+        opacity: 0;
+
+        transform:
+            translateY(-3px);
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(0);
+    }
+
+}
+
+
+/* =========================================================
+   PERGUNTA
+========================================================= */
 
 .checklist-question {
     width: 100%;
@@ -1024,7 +1292,8 @@ body {
 
     transition:
         border-color 0.2s ease,
-        box-shadow 0.2s ease;
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
 }
 
 
@@ -1782,6 +2051,114 @@ body {
 
 
 /* =========================================================
+   AUDITORIA SOMENTE LEITURA
+========================================================= */
+
+.audit-readonly {
+    position: relative;
+}
+
+
+.audit-readonly input:not(#auditHistory),
+.audit-readonly textarea,
+.audit-readonly select {
+    cursor: not-allowed;
+}
+
+
+.readonly-field {
+    background: #eeeeee !important;
+
+    color: #555555 !important;
+
+    border-color:
+        #999999 !important;
+
+    cursor: not-allowed !important;
+}
+
+
+.audit-readonly .checklist {
+    position: relative;
+}
+
+
+.audit-readonly .checklist-question,
+.audit-readonly .checklist-category {
+    opacity: 0.72;
+}
+
+
+.audit-readonly .answer-option,
+.audit-readonly .image-upload-label,
+.audit-readonly .remove-image-button {
+    cursor: not-allowed;
+}
+
+
+.audit-readonly .checklist-question:hover {
+    border-color:
+        #d4d4d4;
+
+    box-shadow: none;
+}
+
+
+.audit-readonly .answer-option:hover {
+    background: #ffffff;
+
+    box-shadow: none;
+}
+
+
+.audit-readonly .image-upload-label:hover {
+    background: #ffffff;
+
+    box-shadow: none;
+}
+
+
+.action-button.readonly-button {
+    opacity: 0.45;
+
+    cursor: not-allowed;
+
+    pointer-events: none;
+
+    box-shadow: none;
+
+    transform: none;
+}
+
+
+.audit-status.readonly {
+    margin-bottom: 18px;
+
+    padding:
+        12px
+        15px;
+
+    border:
+        2px solid
+        #000000;
+
+    border-radius: 8px;
+
+    background: #eeeeee;
+
+    color: #555555;
+
+    font-size: 13px;
+
+    font-weight: 900;
+
+    text-align: center;
+
+    line-height: 1.4;
+}
+
+
+/* =========================================================
    TABLET
 ========================================================= */
 
@@ -1892,25 +2269,71 @@ body {
 
         padding:
             6px
-            12px;
+            8px;
+
+        gap: 6px;
     }
 
 
-    .header-button {
-        min-height: 38px;
+    /* =====================================================
+       INÍCIO
+    ===================================================== */
+
+    .header-home-button {
+        min-width: 68px !important;
+
+        min-height: 37px !important;
+
+        padding:
+            6px
+            8px !important;
+
+        font-size: 10px !important;
+    }
+
+
+    /* =====================================================
+       ABAS
+    ===================================================== */
+
+    .header-navigation {
+        gap: 4px;
+
+        overflow-x: auto;
+
+        flex: 1;
+    }
+
+
+    .header-navigation .header-button {
+        flex: 0 0 auto;
+
+        min-width: 82px;
+
+        min-height: 37px;
 
         padding:
             7px
-            15px;
+            9px;
 
-        font-size: 13px;
+        font-size: 10px;
     }
 
+
+    /* =====================================================
+       TÍTULO
+    ===================================================== */
 
     .header-title {
-        font-size: 13px;
+        font-size: 11px;
+
+        letter-spacing: 0.5px;
     }
 
+
+    /* =====================================================
+       TÍTULO DA PÁGINA
+    ===================================================== */
 
     .page-title-section {
         padding:
@@ -1944,6 +2367,10 @@ body {
     }
 
 
+    /* =====================================================
+       CONTAINER
+    ===================================================== */
+
     .audit-container {
         padding:
             18px
@@ -1961,6 +2388,10 @@ body {
         border-radius: 10px;
     }
 
+
+    /* =====================================================
+       SCORE
+    ===================================================== */
 
     .score-card {
         flex-direction: column;
@@ -2026,6 +2457,10 @@ body {
     }
 
 
+    /* =====================================================
+       SEÇÕES
+    ===================================================== */
+
     .section-heading {
         gap: 9px;
     }
@@ -2052,6 +2487,10 @@ body {
     }
 
 
+    /* =====================================================
+       EMPRESA
+    ===================================================== */
+
     .company-grid {
         gap: 10px;
     }
@@ -2067,12 +2506,20 @@ body {
     }
 
 
+    /* =====================================================
+       FORMULÁRIO
+    ===================================================== */
+
     .form-grid {
         grid-template-columns: 1fr;
 
         gap: 14px;
     }
 
+
+    /* =====================================================
+       CHECKLIST
+    ===================================================== */
 
     .checklist {
         gap: 12px;
@@ -2148,6 +2595,10 @@ body {
     }
 
 
+    /* =====================================================
+       IMAGENS
+    ===================================================== */
+
     .image-upload-label {
         width: 100%;
 
@@ -2172,6 +2623,10 @@ body {
     }
 
 
+    /* =====================================================
+       BOTÕES
+    ===================================================== */
+
     .audit-actions {
         grid-template-columns: 1fr;
 
@@ -2183,6 +2638,10 @@ body {
         min-height: 52px;
     }
 
+
+    /* =====================================================
+       DATA
+    ===================================================== */
 
     .date-input-wrapper #auditDate {
         padding-right: 55px;
@@ -2199,6 +2658,10 @@ body {
         font-size: 17px;
     }
 
+
+    /* =====================================================
+       RODAPÉ
+    ===================================================== */
 
     .footer {
         padding:
@@ -2220,6 +2683,51 @@ body {
 ========================================================= */
 
 @media (max-width: 400px) {
+
+    .header-content {
+        padding-left: 6px;
+
+        padding-right: 6px;
+
+        gap: 5px;
+    }
+
+
+    .header-home-button {
+        min-width: 62px !important;
+
+        padding:
+            6px
+            6px !important;
+
+        font-size: 9px !important;
+    }
+
+
+    .header-navigation {
+        gap: 3px;
+    }
+
+
+    .header-navigation .header-button {
+        min-width: 76px;
+
+        min-height: 36px;
+
+        padding:
+            6px
+            7px;
+
+        font-size: 9px;
+    }
+
+
+    .header-title {
+        font-size: 9px;
+
+        letter-spacing: 0.3px;
+    }
+
 
     .page-title {
         font-size: 28px;
@@ -2368,6 +2876,43 @@ body {
 
 @media (max-width: 320px) {
 
+    .header-content {
+        gap: 4px;
+    }
+
+
+    .header-home-button {
+        min-width: 57px !important;
+
+        padding:
+            6px
+            5px !important;
+
+        font-size: 8px !important;
+    }
+
+
+    .header-navigation {
+        gap: 2px;
+    }
+
+
+    .header-navigation .header-button {
+        min-width: 70px;
+
+        padding:
+            6px
+            5px;
+
+        font-size: 8px;
+    }
+
+
+    .header-title {
+        font-size: 8px;
+    }
+
+
     .audit-container {
         padding-left: 7px;
 
@@ -2416,156 +2961,29 @@ body {
 
         font-size: 15px;
     }
-    /* =========================================================
-   AUDITORIA SOMENTE LEITURA
+
+}
+
+
+/* =========================================================
+   ACESSIBILIDADE / REDUÇÃO DE MOVIMENTO
 ========================================================= */
 
-.audit-readonly {
-    position: relative;
-}
+@media (prefers-reduced-motion: reduce) {
+
+    html {
+        scroll-behavior: auto;
+    }
 
 
-/* Campos bloqueados */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
 
-.audit-readonly input:not(#auditHistory),
-.audit-readonly textarea,
-.audit-readonly select {
-    cursor: not-allowed;
-}
+        animation-iteration-count: 1 !important;
 
-
-/* Checklist inteiro bloqueado */
-
-.audit-readonly .checklist {
-    position: relative;
-}
-
-
-/*
- * Camada visual sobre o checklist.
- * Não interfere no seletor de histórico.
- */
-
-.audit-readonly .checklist-question,
-.audit-readonly .checklist-category {
-    opacity: 0.72;
-}
-
-
-.audit-readonly .answer-option,
-.audit-readonly .image-upload-label,
-.audit-readonly .remove-image-button {
-    cursor: not-allowed;
-}
-
-
-/* Botões principais bloqueados */
-
-.action-button.readonly-button {
-    opacity: 0.45;
-
-    cursor: not-allowed;
-
-    pointer-events: none;
-
-    box-shadow: none;
-
-    transform: none;
-}
-
-
-/* Campo de auditor somente leitura */
-
-.readonly-field {
-    background: #eeeeee !important;
-
-    color: #555555 !important;
-
-    border-color: #999999 !important;
-
-    cursor: not-allowed !important;
-}
-
-
-/* Aviso visual */
-
-.audit-status.readonly {
-    margin-bottom: 18px;
-
-    padding:
-        12px
-        15px;
-
-    border:
-        2px solid
-        #000000;
-
-    border-radius: 8px;
-
-    background: #eeeeee;
-
-    color: #555555;
-
-    font-size: 13px;
-
-    font-weight: 900;
-
-    text-align: center;
-
-    line-height: 1.4;
-}
-
-
-/* Auditoria de hoje */
-
-.audit-status.editable {
-    margin-bottom: 18px;
-
-    padding:
-        12px
-        15px;
-
-    border:
-        2px solid
-        #000000;
-
-    border-radius: 8px;
-
-    background: #f5c400;
-
-    color: #000000;
-
-    font-size: 13px;
-
-    font-weight: 900;
-
-    text-align: center;
-
-    line-height: 1.4;
-}
-
-
-/* Evita aparência de hover no checklist bloqueado */
-
-.audit-readonly .checklist-question:hover {
-    border-color: #d4d4d4;
-
-    box-shadow: none;
-}
-
-
-.audit-readonly .answer-option:hover {
-    background: #ffffff;
-
-    box-shadow: none;
-}
-
-
-.audit-readonly .image-upload-label:hover {
-    background: #ffffff;
-
-    box-shadow: none;
-}
+        transition-duration: 0.01ms !important;
+    }
 
 }
-

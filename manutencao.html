@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -9,91 +10,69 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <meta
-        name="description"
-        content="PostoCheck - Sistema em manutenção"
-    >
-
-    <title>PostoCheck - Manutenção</title>
+    <title>Manutenção - PostoCheck</title>
 
     <link
         rel="stylesheet"
-        href="manutencao.css"
+        href="./manutencao.css"
     >
+
 </head>
+
 
 <body>
 
     <main class="maintenance-page">
 
-        <section
-            class="maintenance-card"
-            aria-live="polite"
-        >
-
-            <div class="maintenance-logo-wrapper">
-
-                <img
-                    src="logo.png"
-                    alt="Logo PostoCheck"
-                    class="maintenance-logo"
-                >
-
-            </div>
-
-
-            <span class="maintenance-label">
-                POSTOCHECK
-            </span>
-
+        <section class="maintenance-card">
 
             <div class="maintenance-icon">
                 ⚙
             </div>
 
 
-            <h1 id="maintenanceTitle">
-                Sistema em manutenção
+            <div class="maintenance-brand">
+                POSTO<span>CHECK</span>
+            </div>
+
+
+            <div class="maintenance-line"></div>
+
+
+            <h1>
+                SISTEMA EM MANUTENÇÃO
             </h1>
 
 
             <p
-                id="maintenanceMessage"
+                id="mensagemManutencao"
                 class="maintenance-message"
             >
-                Carregando informações...
+                O sistema está temporariamente indisponível.
             </p>
 
 
             <div
-                id="maintenanceLoading"
-                class="maintenance-loading"
+                id="statusManutencao"
+                class="maintenance-status"
             >
-                <span class="maintenance-spinner"></span>
-
-                <span>
-                    Carregando...
-                </span>
+                Verificando sistema...
             </div>
 
 
-            <div
-                id="maintenanceError"
-                class="maintenance-error"
-                hidden
-            >
-                Não foi possível carregar as informações
-                de manutenção.
+            <div class="maintenance-loader">
+
+                <span></span>
+                <span></span>
+                <span></span>
+
             </div>
 
 
-            <button
-                type="button"
-                id="maintenanceLogoutButton"
-                class="maintenance-logout-button"
-            >
-                DESLOGAR
-            </button>
+            <p class="maintenance-info">
+                Estamos trabalhando para restabelecer
+                o sistema o mais breve possível.
+            </p>
 
         </section>
 
